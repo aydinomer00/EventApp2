@@ -9,9 +9,12 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { useLanguage } from '../context/LanguageContext';
+import { t } from '../locales/translations';
 
 export default function AboutScreen({ navigation }) {
-  const features = [
+  const { language } = useLanguage();
+  const features = language === 'tr' ? [
     {
       id: 1,
       icon: 'calendar-outline',
@@ -48,21 +51,69 @@ export default function AboutScreen({ navigation }) {
       title: 'Özelleştirilebilir',
       description: 'Yaş, cinsiyet ve kategori filtrelemeleri',
     },
+  ] : [
+    {
+      id: 1,
+      icon: 'calendar-outline',
+      title: 'Easy Event Creation',
+      description: 'Create events in a few steps, bring people together',
+    },
+    {
+      id: 2,
+      icon: 'people-outline',
+      title: 'Social Connections',
+      description: 'Meet new people, connect with those who share your interests',
+    },
+    {
+      id: 3,
+      icon: 'chatbubbles-outline',
+      title: 'Group Chats',
+      description: 'Private messaging rooms for each event',
+    },
+    {
+      id: 4,
+      icon: 'shield-checkmark-outline',
+      title: 'Safe Environment',
+      description: 'Trusted users with rating system',
+    },
+    {
+      id: 5,
+      icon: 'notifications-outline',
+      title: 'Smart Notifications',
+      description: 'Event reminders and updates',
+    },
+    {
+      id: 6,
+      icon: 'filter-outline',
+      title: 'Customizable',
+      description: 'Age, gender and category filters',
+    },
   ];
 
-  const teamMembers = [
+  const teamMembers = language === 'tr' ? [
     {
       id: 1,
       name: 'Event2 Ekibi',
       role: 'Geliştirici & Tasarımcı',
       icon: 'people',
     },
+  ] : [
+    {
+      id: 1,
+      name: 'Event2 Team',
+      role: 'Developer & Designer',
+      icon: 'people',
+    },
   ];
 
-  const stats = [
+  const stats = language === 'tr' ? [
     { id: 1, value: '1000+', label: 'Kullanıcı' },
     { id: 2, value: '5000+', label: 'Etkinlik' },
     { id: 3, value: '10000+', label: 'Bağlantı' },
+  ] : [
+    { id: 1, value: '1000+', label: 'Users' },
+    { id: 2, value: '5000+', label: 'Events' },
+    { id: 3, value: '10000+', label: 'Connections' },
   ];
 
   return (
@@ -78,7 +129,7 @@ export default function AboutScreen({ navigation }) {
         >
           <Ionicons name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Uygulama Hakkında</Text>
+        <Text style={styles.headerTitle}>{t(language, 'about')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -92,9 +143,11 @@ export default function AboutScreen({ navigation }) {
             <Ionicons name="calendar" size={64} color="#000000" />
           </View>
           <Text style={styles.appName}>Event2</Text>
-          <Text style={styles.version}>Versiyon 1.0.0</Text>
+          <Text style={styles.version}>{language === 'tr' ? 'Versiyon 1.0.0' : 'Version 1.0.0'}</Text>
           <Text style={styles.tagline}>
-            İnsanları bir araya getiren, anlamlı bağlantılar kurmayı sağlayan sosyal etkinlik platformu
+            {language === 'tr' 
+              ? 'İnsanları bir araya getiren, anlamlı bağlantılar kurmayı sağlayan sosyal etkinlik platformu'
+              : 'A social event platform that brings people together and enables meaningful connections'}
           </Text>
         </View>
 
@@ -112,11 +165,13 @@ export default function AboutScreen({ navigation }) {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="rocket-outline" size={24} color="#000000" />
-            <Text style={styles.sectionTitle}>Misyonumuz</Text>
+            <Text style={styles.sectionTitle}>{language === 'tr' ? 'Misyonumuz' : 'Our Mission'}</Text>
           </View>
           <View style={styles.missionCard}>
             <Text style={styles.missionText}>
-              Event2, insanların ortak ilgi alanları etrafında bir araya gelip, yeni arkadaşlıklar kurmasını ve unutulmaz anılar biriktirmesini sağlayan bir platformdur. Sosyalleşmeyi kolaylaştırarak toplulukları güçlendirmeyi ve herkesin hayatına değer katmayı hedefliyoruz.
+              {language === 'tr' 
+                ? 'Event2, insanların ortak ilgi alanları etrafında bir araya gelip, yeni arkadaşlıklar kurmasını ve unutulmaz anılar biriktirmesini sağlayan bir platformdur. Sosyalleşmeyi kolaylaştırarak toplulukları güçlendirmeyi ve herkesin hayatına değer katmayı hedefliyoruz.'
+                : 'Event2 is a platform that enables people to come together around common interests, build new friendships, and create unforgettable memories. We aim to strengthen communities by facilitating socialization and adding value to everyone\'s life.'}
             </Text>
           </View>
         </View>
@@ -125,7 +180,7 @@ export default function AboutScreen({ navigation }) {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="star-outline" size={24} color="#000000" />
-            <Text style={styles.sectionTitle}>Özelliklerimiz</Text>
+            <Text style={styles.sectionTitle}>{language === 'tr' ? 'Özelliklerimiz' : 'Our Features'}</Text>
           </View>
           <View style={styles.featuresGrid}>
             {features.map((feature) => (
@@ -144,7 +199,7 @@ export default function AboutScreen({ navigation }) {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="people-outline" size={24} color="#000000" />
-            <Text style={styles.sectionTitle}>Ekibimiz</Text>
+            <Text style={styles.sectionTitle}>{language === 'tr' ? 'Ekibimiz' : 'Our Team'}</Text>
           </View>
           <View style={styles.teamContainer}>
             {teamMembers.map((member) => (
@@ -163,7 +218,7 @@ export default function AboutScreen({ navigation }) {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="share-social-outline" size={24} color="#000000" />
-            <Text style={styles.sectionTitle}>Bizi Takip Edin</Text>
+            <Text style={styles.sectionTitle}>{language === 'tr' ? 'Bizi Takip Edin' : 'Follow Us'}</Text>
           </View>
           <View style={styles.socialContainer}>
             <TouchableOpacity
@@ -205,7 +260,7 @@ export default function AboutScreen({ navigation }) {
               onPress={() => navigation.navigate('Terms')}
               activeOpacity={0.7}
             >
-              <Text style={styles.legalText}>Kullanım Koşulları</Text>
+              <Text style={styles.legalText}>{t(language, 'terms')}</Text>
               <Ionicons name="chevron-forward" size={18} color="#999999" />
             </TouchableOpacity>
             <TouchableOpacity
@@ -213,7 +268,7 @@ export default function AboutScreen({ navigation }) {
               onPress={() => navigation.navigate('PrivacyPolicy')}
               activeOpacity={0.7}
             >
-              <Text style={styles.legalText}>Gizlilik Politikası</Text>
+              <Text style={styles.legalText}>{t(language, 'privacyPolicy')}</Text>
               <Ionicons name="chevron-forward" size={18} color="#999999" />
             </TouchableOpacity>
           </View>
@@ -222,10 +277,10 @@ export default function AboutScreen({ navigation }) {
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            © 2024 Event2. Tüm hakları saklıdır.
+            {language === 'tr' ? '© 2024 Event2. Tüm hakları saklıdır.' : '© 2024 Event2. All rights reserved.'}
           </Text>
           <Text style={styles.footerSubtext}>
-            Sevgiyle İstanbul'dan yapıldı ❤️
+            {language === 'tr' ? 'Sevgiyle İstanbul\'dan yapıldı ❤️' : 'Made with love from Istanbul ❤️'}
           </Text>
         </View>
 

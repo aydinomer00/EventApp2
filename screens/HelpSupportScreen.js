@@ -10,11 +10,14 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { useLanguage } from '../context/LanguageContext';
+import { t } from '../locales/translations';
 
 export default function HelpSupportScreen({ navigation }) {
+  const { language } = useLanguage();
   const [expandedFaq, setExpandedFaq] = useState(null);
 
-  const faqs = [
+  const faqs = language === 'tr' ? [
     {
       id: 1,
       question: 'Nasıl etkinlik oluşturabilirim?',
@@ -55,9 +58,50 @@ export default function HelpSupportScreen({ navigation }) {
       question: 'Değerlendirme sistemi nasıl çalışır?',
       answer: 'Etkinlik tamamlandıktan sonra, organizatörü ve etkinliği değerlendirebilirsiniz. Bu değerlendirmeler güvenilir kullanıcı rozetine katkı sağlar.',
     },
+  ] : [
+    {
+      id: 1,
+      question: 'How can I create an event?',
+      answer: 'Click the "Create Event" button on the home page. Fill in the event details step by step using the form and publish it.',
+    },
+    {
+      id: 2,
+      question: 'How can I join an event?',
+      answer: 'Click on events on the home page, review the details and press the "Join" button. After the organizer approves, you will have joined the event.',
+    },
+    {
+      id: 3,
+      question: 'Who can join my event?',
+      answer: 'When creating an event, you can choose from everyone, women only, or men only in the "Who Can Join?" section.',
+    },
+    {
+      id: 4,
+      question: 'How do I set the number of participants?',
+      answer: 'You can set the number of participants you want from the "Maximum Participants" field during event creation.',
+    },
+    {
+      id: 5,
+      question: 'How does messaging work?',
+      answer: 'When you join an event, a special group chat is created for that event. All participants can message through this group.',
+    },
+    {
+      id: 6,
+      question: 'How can I cancel my event?',
+      answer: 'Go to the detail page of the event you created, you can use the "Delete Event" option from the menu in the top right.',
+    },
+    {
+      id: 7,
+      question: 'How can I leave an event I joined?',
+      answer: 'You can leave the event by clicking the "Cancel Participation" button on the event detail page.',
+    },
+    {
+      id: 8,
+      question: 'How does the rating system work?',
+      answer: 'After the event is completed, you can rate the organizer and the event. These ratings contribute to a trusted user badge.',
+    },
   ];
 
-  const contactOptions = [
+  const contactOptions = language === 'tr' ? [
     {
       id: 1,
       icon: 'mail-outline',
@@ -86,6 +130,35 @@ export default function HelpSupportScreen({ navigation }) {
       subtitle: 'Pazartesi-Cuma, 09:00-18:00',
       action: () => Alert.alert('Canlı Destek', 'Canlı destek özelliği yakında aktif olacak!'),
     },
+  ] : [
+    {
+      id: 1,
+      icon: 'mail-outline',
+      title: 'Email',
+      subtitle: 'support@event2.com',
+      action: () => Linking.openURL('mailto:support@event2.com'),
+    },
+    {
+      id: 2,
+      icon: 'logo-instagram',
+      title: 'Instagram',
+      subtitle: '@event2app',
+      action: () => Linking.openURL('https://instagram.com/event2app'),
+    },
+    {
+      id: 3,
+      icon: 'logo-twitter',
+      title: 'Twitter',
+      subtitle: '@event2app',
+      action: () => Linking.openURL('https://twitter.com/event2app'),
+    },
+    {
+      id: 4,
+      icon: 'chatbubble-ellipses-outline',
+      title: 'Live Support',
+      subtitle: 'Monday-Friday, 09:00-18:00',
+      action: () => Alert.alert('Live Support', 'Live support feature will be available soon!'),
+    },
   ];
 
   const toggleFaq = (id) => {
@@ -105,7 +178,7 @@ export default function HelpSupportScreen({ navigation }) {
         >
           <Ionicons name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Yardım & Destek</Text>
+        <Text style={styles.headerTitle}>{t(language, 'helpSupport')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -118,9 +191,9 @@ export default function HelpSupportScreen({ navigation }) {
           <View style={styles.heroIcon}>
             <Ionicons name="help-circle" size={64} color="#000000" />
           </View>
-          <Text style={styles.heroTitle}>Size nasıl yardımcı olabiliriz?</Text>
+          <Text style={styles.heroTitle}>{language === 'tr' ? 'Size nasıl yardımcı olabiliriz?' : 'How can we help you?'}</Text>
           <Text style={styles.heroSubtitle}>
-            Sık sorulan sorulara göz atın veya bizimle iletişime geçin
+            {language === 'tr' ? 'Sık sorulan sorulara göz atın veya bizimle iletişime geçin' : 'Browse frequently asked questions or contact us'}
           </Text>
         </View>
 
@@ -128,7 +201,7 @@ export default function HelpSupportScreen({ navigation }) {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="document-text-outline" size={24} color="#000000" />
-            <Text style={styles.sectionTitle}>Sık Sorulan Sorular</Text>
+            <Text style={styles.sectionTitle}>{language === 'tr' ? 'Sık Sorulan Sorular' : 'Frequently Asked Questions'}</Text>
           </View>
 
           <View style={styles.faqContainer}>
@@ -162,7 +235,7 @@ export default function HelpSupportScreen({ navigation }) {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="chatbubbles-outline" size={24} color="#000000" />
-            <Text style={styles.sectionTitle}>İletişim Kanalları</Text>
+            <Text style={styles.sectionTitle}>{language === 'tr' ? 'İletişim Kanalları' : 'Contact Channels'}</Text>
           </View>
 
           <View style={styles.contactContainer}>
@@ -190,9 +263,11 @@ export default function HelpSupportScreen({ navigation }) {
         <View style={styles.section}>
           <View style={styles.quickHelpCard}>
             <Ionicons name="bulb-outline" size={32} color="#FFA726" />
-            <Text style={styles.quickHelpTitle}>İpucu</Text>
+            <Text style={styles.quickHelpTitle}>{language === 'tr' ? 'İpucu' : 'Tip'}</Text>
             <Text style={styles.quickHelpText}>
-              Daha iyi bir deneyim için profilinizi eksiksiz doldurun ve etkinlik oluştururken tüm detayları belirtin.
+              {language === 'tr' 
+                ? 'Daha iyi bir deneyim için profilinizi eksiksiz doldurun ve etkinlik oluştururken tüm detayları belirtin.'
+                : 'For a better experience, fill out your profile completely and specify all details when creating events.'}
             </Text>
           </View>
         </View>

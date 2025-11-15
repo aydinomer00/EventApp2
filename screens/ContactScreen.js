@@ -8,6 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function ContactScreen({ navigation }) {
   const handleEmailPress = () => {
@@ -15,7 +16,7 @@ export default function ContactScreen({ navigation }) {
   };
 
   const handleInstagramPress = () => {
-    Linking.openURL('https://instagram.com/eventapp');
+    Linking.openURL('https://instagram.com/aydinomer00');
   };
 
   const handleWebsitePress = () => {
@@ -24,15 +25,16 @@ export default function ContactScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
           onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
         >
-          <Text style={styles.backButtonText}>←</Text>
+          <Ionicons name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>İletişim</Text>
         <View style={styles.placeholder} />
@@ -46,7 +48,7 @@ export default function ContactScreen({ navigation }) {
         {/* Hero Section */}
         <View style={styles.heroSection}>
           <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>📧</Text>
+            <Ionicons name="mail" size={48} color="#FFFFFF" />
           </View>
           <Text style={styles.heroTitle}>Bize Ulaşın</Text>
           <Text style={styles.heroSubtitle}>
@@ -61,7 +63,7 @@ export default function ContactScreen({ navigation }) {
           <View style={styles.infoCard}>
             <View style={styles.infoRow}>
               <View style={styles.iconCircle}>
-                <Text style={styles.iconText}>🏢</Text>
+                <Ionicons name="business" size={24} color="#000000" />
               </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Şirket Adı</Text>
@@ -77,13 +79,13 @@ export default function ContactScreen({ navigation }) {
               activeOpacity={0.7}
             >
               <View style={styles.iconCircle}>
-                <Text style={styles.iconText}>✉️</Text>
+                <Ionicons name="mail-outline" size={24} color="#000000" />
               </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>E-posta</Text>
                 <Text style={styles.infoValueLink}>info@eventapp.com</Text>
               </View>
-              <Text style={styles.arrowIcon}>→</Text>
+              <Ionicons name="chevron-forward" size={20} color="#CCCCCC" />
             </TouchableOpacity>
 
             <View style={styles.divider} />
@@ -94,13 +96,13 @@ export default function ContactScreen({ navigation }) {
               activeOpacity={0.7}
             >
               <View style={styles.iconCircle}>
-                <Text style={styles.iconText}>🌐</Text>
+                <Ionicons name="globe-outline" size={24} color="#000000" />
               </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Web Sitesi</Text>
                 <Text style={styles.infoValueLink}>www.eventapp.com</Text>
               </View>
-              <Text style={styles.arrowIcon}>→</Text>
+              <Ionicons name="chevron-forward" size={20} color="#CCCCCC" />
             </TouchableOpacity>
           </View>
         </View>
@@ -116,14 +118,14 @@ export default function ContactScreen({ navigation }) {
           >
             <View style={styles.socialContent}>
               <View style={styles.socialIconContainer}>
-                <Text style={styles.socialIcon}>📷</Text>
+                <Ionicons name="logo-instagram" size={32} color="#E1306C" />
               </View>
               <View style={styles.socialInfo}>
                 <Text style={styles.socialName}>Instagram</Text>
-                <Text style={styles.socialHandle}>@eventapp</Text>
+                <Text style={styles.socialHandle}>@aydinomer00</Text>
               </View>
             </View>
-            <Text style={styles.socialArrow}>→</Text>
+            <Ionicons name="chevron-forward" size={24} color="#CCCCCC" />
           </TouchableOpacity>
         </View>
 
@@ -146,7 +148,7 @@ export default function ContactScreen({ navigation }) {
 
         {/* Info Box */}
         <View style={styles.footerBox}>
-          <Text style={styles.footerIcon}>💬</Text>
+          <Ionicons name="chatbubbles" size={28} color="#1976D2" style={styles.footerIcon} />
           <Text style={styles.footerText}>
             Sorularınız için bize e-posta gönderin, en kısa sürede size dönüş yapacağız!
           </Text>
@@ -159,7 +161,7 @@ export default function ContactScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F8F9FA',
   },
   header: {
     flexDirection: 'row',
@@ -168,25 +170,28 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 24,
-    backgroundColor: '#007bff',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#F5F5F5',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: '#ffffff',
-    fontWeight: 'bold',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: '#000000',
   },
   placeholder: {
     width: 40,
@@ -206,13 +211,18 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#e3f2fd',
+    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
-  },
-  logoText: {
-    fontSize: 40,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
   heroTitle: {
     fontSize: 28,
@@ -235,7 +245,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   infoCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 20,
     shadowColor: '#000',
@@ -256,13 +266,10 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#f0f4ff',
+    backgroundColor: '#F5F5F5',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
-  },
-  iconText: {
-    fontSize: 24,
   },
   infoContent: {
     flex: 1,
@@ -280,12 +287,7 @@ const styles = StyleSheet.create({
   infoValueLink: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#007bff',
-  },
-  arrowIcon: {
-    fontSize: 20,
-    color: '#adb5bd',
-    marginLeft: 8,
+    color: '#000000',
   },
   divider: {
     height: 1,
@@ -293,7 +295,7 @@ const styles = StyleSheet.create({
     marginVertical: 16,
   },
   socialCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 20,
     flexDirection: 'row',
@@ -317,13 +319,12 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#fff0f6',
+    backgroundColor: '#FFF5F7',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
-  },
-  socialIcon: {
-    fontSize: 28,
+    borderWidth: 1,
+    borderColor: '#FFE0E6',
   },
   socialInfo: {
     flex: 1,
@@ -336,12 +337,8 @@ const styles = StyleSheet.create({
   },
   socialHandle: {
     fontSize: 15,
-    color: '#6c757d',
-  },
-  socialArrow: {
-    fontSize: 24,
-    color: '#adb5bd',
-    marginLeft: 12,
+    color: '#E1306C',
+    fontWeight: '600',
   },
   hoursCard: {
     backgroundColor: '#ffffff',
@@ -379,21 +376,22 @@ const styles = StyleSheet.create({
   },
   footerBox: {
     flexDirection: 'row',
-    backgroundColor: '#e3f2fd',
+    backgroundColor: '#E3F2FD',
     padding: 20,
     borderRadius: 16,
     alignItems: 'flex-start',
     marginTop: 8,
     marginBottom: 40,
+    borderWidth: 1,
+    borderColor: '#BBDEFB',
   },
   footerIcon: {
-    fontSize: 24,
     marginRight: 12,
   },
   footerText: {
     flex: 1,
     fontSize: 14,
-    color: '#0d47a1',
+    color: '#1976D2',
     lineHeight: 20,
   },
 });

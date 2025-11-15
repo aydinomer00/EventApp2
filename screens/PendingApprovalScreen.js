@@ -8,23 +8,27 @@ import {
   ScrollView,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
 import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebase';
+import { useLanguage } from '../context/LanguageContext';
+import { t } from '../locales/translations';
 
 export default function PendingApprovalScreen({ navigation }) {
   const user = auth.currentUser;
+  const { language } = useLanguage();
 
   const handleLogout = () => {
     Alert.alert(
-      'Çıkış Yap',
-      'Çıkış yapmak istediğinize emin misiniz?',
+      t(language, 'logout'),
+      language === 'tr' ? 'Çıkış yapmak istediğinize emin misiniz?' : 'Are you sure you want to log out?',
       [
         {
-          text: 'İptal',
+          text: t(language, 'cancel'),
           style: 'cancel',
         },
         {
-          text: 'Çıkış Yap',
+          text: t(language, 'logout'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -44,13 +48,14 @@ export default function PendingApprovalScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Hoş Geldiniz! 👋</Text>
-          <Text style={styles.headerSubtitle}>{user?.displayName}</Text>
+          <Text style={styles.headerTitle}>
+            {language === 'tr' ? 'Hoş Geldiniz' : 'Welcome'}, {user?.displayName || t(language, 'User')}
+          </Text>
         </View>
       </View>
 
@@ -62,25 +67,22 @@ export default function PendingApprovalScreen({ navigation }) {
         {/* Success Card */}
         <View style={styles.successCard}>
           <View style={styles.successIconContainer}>
-            <Text style={styles.successIcon}>✨</Text>
+            <Ionicons name="checkmark-circle" size={64} color="#FFFFFF" />
           </View>
-          <Text style={styles.successTitle}>Kaydınız Başarıyla Alındı!</Text>
-          <Text style={styles.successText}>
-            Hesabınız şu anda inceleniyor. Onay sürecini takip edebilirsiniz.
-          </Text>
+          <Text style={styles.successTitle}>{t(language, 'registrationSuccess')}</Text>
         </View>
 
         {/* Progress Steps */}
         <View style={styles.stepsCard}>
-          <Text style={styles.stepsCardTitle}>İnceleme Durumu</Text>
+          <Text style={styles.stepsCardTitle}>{t(language, 'reviewStatus')}</Text>
           
           <View style={styles.stepItem}>
             <View style={[styles.stepDot, styles.stepDotCompleted]}>
-              <Text style={styles.stepDotIcon}>✓</Text>
+              <Ionicons name="checkmark" size={20} color="#FFFFFF" />
             </View>
             <View style={styles.stepInfo}>
-              <Text style={styles.stepLabel}>Kayıt Tamamlandı</Text>
-              <Text style={styles.stepDescription}>Bilgileriniz başarıyla alındı</Text>
+              <Text style={styles.stepLabel}>{t(language, 'registrationComplete')}</Text>
+              <Text style={styles.stepDescription}>{t(language, 'infoReceived')}</Text>
             </View>
           </View>
 
@@ -89,15 +91,19 @@ export default function PendingApprovalScreen({ navigation }) {
           <View style={styles.stepItem}>
             <View style={[styles.stepDot, styles.stepDotActive]}>
               <View style={styles.stepDotPulse} />
+              <Ionicons name="time-outline" size={20} color="#FFFFFF" />
             </View>
             <View style={styles.stepInfo}>
-              <Text style={styles.stepLabel}>İnceleme Aşamasında</Text>
-              <Text style={styles.stepDescription}>
-                Instagram profiliniz kontrol ediliyor
-              </Text>
-              <View style={styles.statusBadge}>
-                <Text style={styles.statusBadgeText}>⏱️ Devam ediyor</Text>
+              <View style={styles.stepLabelRow}>
+                <Text style={styles.stepLabel}>{t(language, 'underReview')}</Text>
+                <View style={styles.statusBadge}>
+                  <Ionicons name="hourglass-outline" size={12} color="#000000" />
+                  <Text style={styles.statusBadgeText}>{t(language, 'inProgress')}</Text>
+                </View>
               </View>
+              <Text style={styles.stepDescription}>
+                {t(language, 'instaCheck')}
+              </Text>
             </View>
           </View>
 
@@ -105,14 +111,14 @@ export default function PendingApprovalScreen({ navigation }) {
 
           <View style={styles.stepItem}>
             <View style={[styles.stepDot, styles.stepDotPending]}>
-              <Text style={styles.stepDotIconPending}>○</Text>
+              <Ionicons name="ellipse-outline" size={20} color="#999999" />
             </View>
             <View style={styles.stepInfo}>
               <Text style={[styles.stepLabel, styles.stepLabelPending]}>
-                Onay Bekliyor
+                {t(language, 'waitingApproval')}
               </Text>
               <Text style={styles.stepDescription}>
-                Hesabınız aktif hale gelecek
+                {t(language, 'accountWillActivate')}
               </Text>
             </View>
           </View>
@@ -121,24 +127,27 @@ export default function PendingApprovalScreen({ navigation }) {
         {/* Info Card */}
         <View style={styles.infoCard}>
           <View style={styles.infoHeader}>
-            <Text style={styles.infoIconLarge}>⏰</Text>
+            <View style={styles.infoIconContainer}>
+              <Ionicons name="time-outline" size={32} color="#FFA726" />
+            </View>
             <View style={styles.infoHeaderText}>
-              <Text style={styles.infoTitle}>Bekleme Süresi</Text>
-              <Text style={styles.infoTime}>24-48 saat</Text>
+              <Text style={styles.infoTitle}>{t(language, 'waitTime')}</Text>
+              <Text style={styles.infoTime}>{t(language, 'hours24to48')}</Text>
             </View>
           </View>
           <Text style={styles.infoDescription}>
-            İnceleme süreci genellikle 1-2 gün içinde tamamlanır. 
-            Hesabınız onaylandığında e-posta ile bilgilendirileceksiniz.
+            {t(language, 'reviewProcess')}
           </Text>
         </View>
 
         {/* Tips Card */}
         <View style={styles.tipsCard}>
-          <Text style={styles.tipsTitle}>💡 İpucu</Text>
+          <View style={styles.tipsHeader}>
+            <Ionicons name="bulb" size={20} color="#4CAF50" />
+            <Text style={styles.tipsTitle}>{t(language, 'tip')}</Text>
+          </View>
           <Text style={styles.tipsText}>
-            Instagram profilinizin herkese açık olduğundan emin olun. 
-            Bu, onay sürecinin daha hızlı ilerlemesini sağlar.
+            {t(language, 'instaPublicTip')}
           </Text>
         </View>
 
@@ -148,9 +157,9 @@ export default function PendingApprovalScreen({ navigation }) {
           onPress={handleContactPress}
           activeOpacity={0.8}
         >
-          <Text style={styles.contactButtonIcon}>📧</Text>
-          <Text style={styles.contactButtonText}>Bize Ulaşın</Text>
-          <Text style={styles.contactButtonArrow}>→</Text>
+          <Ionicons name="mail-outline" size={22} color="#FFFFFF" style={styles.contactButtonIcon} />
+          <Text style={styles.contactButtonText}>{t(language, 'contactUs')}</Text>
+          <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
         </TouchableOpacity>
 
         <TouchableOpacity 
@@ -158,14 +167,8 @@ export default function PendingApprovalScreen({ navigation }) {
           onPress={handleLogout}
           activeOpacity={0.8}
         >
-          <Text style={styles.logoutText}>Çıkış Yap</Text>
+          <Text style={styles.logoutText}>{t(language, 'logout')}</Text>
         </TouchableOpacity>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Sorunuz mu var? Bizimle iletişime geçin
-          </Text>
-        </View>
       </ScrollView>
     </View>
   );
@@ -174,15 +177,23 @@ export default function PendingApprovalScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F8F9FA',
   },
   header: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#FFFFFF',
     paddingTop: 60,
     paddingBottom: 24,
     paddingHorizontal: 24,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
   },
   headerContent: {
     alignItems: 'center',
@@ -190,12 +201,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#ffffff',
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: '#000000',
+    textAlign: 'center',
   },
   scrollView: {
     flex: 1,
@@ -205,7 +212,7 @@ const styles = StyleSheet.create({
     paddingTop: 24,
   },
   successCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 24,
     alignItems: 'center',
@@ -223,13 +230,18 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#fff3e0',
+    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
-  },
-  successIcon: {
-    fontSize: 40,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
   successTitle: {
     fontSize: 22,
@@ -277,41 +289,37 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   stepDotCompleted: {
-    backgroundColor: '#28a745',
+    backgroundColor: '#4CAF50',
   },
   stepDotActive: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#000000',
     position: 'relative',
   },
   stepDotPending: {
-    backgroundColor: '#e9ecef',
-  },
-  stepDotIcon: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#ffffff',
-  },
-  stepDotIconPending: {
-    fontSize: 24,
-    color: '#adb5bd',
+    backgroundColor: '#E9ECEF',
   },
   stepDotPulse: {
     position: 'absolute',
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#007bff',
-    opacity: 0.3,
+    backgroundColor: '#000000',
+    opacity: 0.2,
   },
   stepInfo: {
     flex: 1,
     paddingTop: 2,
   },
+  stepLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
   stepLabel: {
     fontSize: 16,
     fontWeight: '700',
     color: '#1a1a1a',
-    marginBottom: 4,
   },
   stepLabelPending: {
     color: '#6c757d',
@@ -322,16 +330,17 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   statusBadge: {
-    backgroundColor: '#e3f2fd',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: '#F5F5F5',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 12,
-    alignSelf: 'flex-start',
-    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   statusBadgeText: {
-    fontSize: 13,
-    color: '#0d47a1',
+    fontSize: 12,
+    color: '#000000',
     fontWeight: '600',
   },
   stepConnector: {
@@ -342,21 +351,34 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   infoCard: {
-    backgroundColor: '#fff8e1',
+    backgroundColor: '#FFF8E1',
     borderRadius: 20,
     padding: 20,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#ffecb3',
+    borderColor: '#FFECB3',
   },
   infoHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
   },
-  infoIconLarge: {
-    fontSize: 32,
+  infoIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   infoHeaderText: {
     flex: 1,
@@ -364,7 +386,7 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#f57c00',
+    color: '#F57C00',
     marginBottom: 4,
   },
   infoTime: {
@@ -378,33 +400,38 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   tipsCard: {
-    backgroundColor: '#e8f5e9',
+    backgroundColor: '#E8F5E9',
     borderRadius: 20,
     padding: 20,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#c8e6c9',
+    borderColor: '#C8E6C9',
+  },
+  tipsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
   },
   tipsTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#2e7d32',
-    marginBottom: 8,
+    color: '#2E7D32',
   },
   tipsText: {
     fontSize: 14,
-    color: '#1b5e20',
+    color: '#1B5E20',
     lineHeight: 20,
   },
   contactButton: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#000000',
     borderRadius: 16,
     padding: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
-    shadowColor: '#007bff',
+    shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 4,
@@ -414,43 +441,28 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   contactButtonIcon: {
-    fontSize: 20,
     marginRight: 8,
   },
   contactButtonText: {
-    color: '#ffffff',
+    color: '#FFFFFF',
     fontSize: 17,
     fontWeight: 'bold',
     flex: 1,
     textAlign: 'center',
   },
-  contactButtonArrow: {
-    fontSize: 20,
-    color: '#ffffff',
-    fontWeight: 'bold',
-  },
   logoutButton: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 18,
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 40,
     borderWidth: 2,
-    borderColor: '#dc3545',
+    borderColor: '#000000',
   },
   logoutText: {
-    color: '#dc3545',
+    color: '#000000',
     fontSize: 17,
     fontWeight: 'bold',
-  },
-  footer: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  footerText: {
-    fontSize: 14,
-    color: '#adb5bd',
-    textAlign: 'center',
   },
 });
 

@@ -14,19 +14,35 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, query, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
+import { useLanguage } from '../context/LanguageContext';
+import { t } from '../locales/translations';
+import { getCityNames, getDistrictsByCity } from '../data/turkeyCities';
 
 export default function HomeScreen({ navigation }) {
   const user = auth.currentUser;
+  const { language } = useLanguage();
   const [userData, setUserData] = useState(null);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   
   // Arama ve filtreleme state'leri
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('Tümü');
-  const [selectedCity, setSelectedCity] = useState('Tümü');
-  const [selectedDistrict, setSelectedDistrict] = useState('Tümü');
+  const [selectedCategory, setSelectedCategory] = useState(language === 'tr' ? 'Tümü' : 'All');
+  const [selectedCity, setSelectedCity] = useState(language === 'tr' ? 'Tümü' : 'All');
+  const [selectedDistrict, setSelectedDistrict] = useState(language === 'tr' ? 'Tümü' : 'All');
   const [showFilters, setShowFilters] = useState(false);
+
+  // Dil değiştiğinde filtreleri sıfırla
+  useEffect(() => {
+    const allCategory = language === 'tr' ? 'Tümü' : 'All';
+    if (selectedCategory === (language === 'tr' ? 'All' : 'Tümü') || 
+        selectedCity === (language === 'tr' ? 'All' : 'Tümü') || 
+        selectedDistrict === (language === 'tr' ? 'All' : 'Tümü')) {
+      setSelectedCategory(allCategory);
+      setSelectedCity(allCategory);
+      setSelectedDistrict(allCategory);
+    }
+  }, [language]);
 
   useEffect(() => {
     // Kullanıcı verilerini yükle
@@ -81,40 +97,24 @@ export default function HomeScreen({ navigation }) {
   const joinedEvents = events.filter(e => e.participants?.includes(user?.uid));
 
   // Kategoriler ve şehirler
-  const categories = ['Tümü', 'Spor', 'Müzik', 'Sanat', 'Yemek', 'Gezi', 'Eğitim', 'Teknoloji', 'Diğer'];
-  const cities = ['Tümü', 'İstanbul', 'Ankara', 'İzmir', 'Antalya', 'Bursa', 'Adana', 'Gaziantep', 'Konya', 'Mersin', 'Diyarbakır', 'Kayseri', 'Eskişehir', 'Samsun', 'Denizli', 'Trabzon', 'Kocaeli', 'Muğla', 'Balıkesir', 'Manisa', 'Aydın'];
-
-  const districtsByCity = {
-    'İstanbul': ['Kadıköy', 'Beşiktaş', 'Şişli', 'Beyoğlu', 'Üsküdar', 'Sarıyer', 'Bakırköy', 'Fatih', 'Kartal', 'Maltepe', 'Ataşehir', 'Pendik', 'Eyüpsultan', 'Sultanbeyli', 'Küçükçekmece'],
-    'Ankara': ['Çankaya', 'Keçiören', 'Yenimahalle', 'Mamak', 'Etimesgut', 'Sincan', 'Altındağ', 'Pursaklar', 'Gölbaşı', 'Polatlı'],
-    'İzmir': ['Konak', 'Karşıyaka', 'Bornova', 'Buca', 'Çiğli', 'Gaziemir', 'Balçova', 'Narlıdere', 'Bayraklı', 'Alsancak'],
-    'Antalya': ['Muratpaşa', 'Kepez', 'Konyaaltı', 'Alanya', 'Manavgat', 'Serik', 'Aksu', 'Döşemealtı'],
-    'Bursa': ['Osmangazi', 'Nilüfer', 'Yıldırım', 'Mudanya', 'Gemlik', 'İnegöl', 'Mustafakemalpaşa', 'Karacabey'],
-    'Adana': ['Seyhan', 'Yüreğir', 'Çukurova', 'Sarıçam', 'Karaisalı', 'Ceyhan', 'Kozan'],
-    'Gaziantep': ['Şahinbey', 'Şehitkamil', 'Oğuzeli', 'Nizip', 'İslahiye', 'Nurdağı'],
-    'Konya': ['Meram', 'Selçuklu', 'Karatay', 'Ereğli', 'Akşehir', 'Beyşehir', 'Seydişehir'],
-    'Mersin': ['Akdeniz', 'Mezitli', 'Toroslar', 'Yenişehir', 'Tarsus', 'Erdemli', 'Silifke'],
-    'Diyarbakır': ['Bağlar', 'Yenişehir', 'Kayapınar', 'Sur', 'Ergani', 'Bismil', 'Çınar'],
-    'Kayseri': ['Melikgazi', 'Kocasinan', 'Talas', 'İncesu', 'Develi', 'Yahyalı'],
-    'Eskişehir': ['Odunpazarı', 'Tepebaşı', 'Sivrihisar', 'Çifteler', 'Mahmudiye'],
-    'Samsun': ['İlkadım', 'Atakum', 'Canik', 'Tekkeköy', 'Terme', 'Bafra', 'Çarşamba'],
-    'Denizli': ['Merkezefendi', 'Pamukkale', 'Honaz', 'Çivril', 'Acıpayam', 'Tavas'],
-    'Trabzon': ['Ortahisar', 'Akçaabat', 'Yomra', 'Arsin', 'Vakfıkebir', 'Araklı', 'Beşikdüzü'],
-    'Kocaeli': ['İzmit', 'Gebze', 'Derince', 'Körfez', 'Darıca', 'Gölcük', 'Kandıra', 'Karamürsel'],
-    'Muğla': ['Menteşe', 'Bodrum', 'Marmaris', 'Fethiye', 'Milas', 'Datça', 'Köyceğiz', 'Ula'],
-    'Balıkesir': ['Altıeylül', 'Karesi', 'Bandırma', 'Edremit', 'Gönen', 'Ayvalık', 'Burhaniye'],
-    'Manisa': ['Şehzadeler', 'Yunusemre', 'Akhisar', 'Turgutlu', 'Salihli', 'Alaşehir', 'Soma'],
-    'Aydın': ['Efeler', 'Nazilli', 'Söke', 'Kuşadası', 'Didim', 'İncirliova', 'Germencik']
-  };
+  const categories = language === 'tr' 
+    ? ['Tümü', 'Kahve & Sohbet', 'Yemek', 'Spor', 'Gezi', 'Sanat & Kültür', 'Oyun', 'Parti', 'Okey101', 'Masa Oyunları', 'Konser & Müzik', 'Sinema', 'Kitap Kulübü', 'Doğa & Kamp', 'Yoga & Meditasyon']
+    : ['All', 'Coffee & Chat', 'Food', 'Sports', 'Travel', 'Art & Culture', 'Game', 'Party', 'Okey101', 'Board Games', 'Concert & Music', 'Cinema', 'Book Club', 'Nature & Camp', 'Yoga & Meditation'];
+  const allCityNames = getCityNames();
+  const cities = language === 'tr'
+    ? ['Tümü', ...allCityNames]
+    : ['All', ...allCityNames];
 
   const getAvailableDistricts = () => {
-    if (selectedCity === 'Tümü') return [];
-    return ['Tümü', ...(districtsByCity[selectedCity] || [])];
+    const allCategory = language === 'tr' ? 'Tümü' : 'All';
+    if (selectedCity === allCategory) return [];
+    const districts = getDistrictsByCity(selectedCity);
+    return [allCategory, ...districts];
   };
 
   const handleCityChange = (newCity) => {
     setSelectedCity(newCity);
-    setSelectedDistrict('Tümü'); // İl değiştiğinde ilçeyi sıfırla
+    setSelectedDistrict(language === 'tr' ? 'Tümü' : 'All'); // İl değiştiğinde ilçeyi sıfırla
   };
 
   // Filtrelenmiş etkinlikler
@@ -131,17 +131,46 @@ export default function HomeScreen({ navigation }) {
     }
     
     // Kategori filtresi
-    if (selectedCategory !== 'Tümü') {
-      if (event.category !== selectedCategory) return false;
+    const allCategory = language === 'tr' ? 'Tümü' : 'All';
+    if (selectedCategory !== allCategory) {
+      // Hem TR hem EN kategori isimlerini kontrol et
+      const categoryMatches = event.category === selectedCategory || 
+        (selectedCategory === 'Kahve & Sohbet' && event.category === 'Coffee & Chat') ||
+        (selectedCategory === 'Coffee & Chat' && event.category === 'Kahve & Sohbet') ||
+        (selectedCategory === 'Yemek' && event.category === 'Food') ||
+        (selectedCategory === 'Food' && event.category === 'Yemek') ||
+        (selectedCategory === 'Spor' && event.category === 'Sports') ||
+        (selectedCategory === 'Sports' && event.category === 'Spor') ||
+        (selectedCategory === 'Gezi' && event.category === 'Travel') ||
+        (selectedCategory === 'Travel' && event.category === 'Gezi') ||
+        (selectedCategory === 'Sanat & Kültür' && event.category === 'Art & Culture') ||
+        (selectedCategory === 'Art & Culture' && event.category === 'Sanat & Kültür') ||
+        (selectedCategory === 'Oyun' && event.category === 'Game') ||
+        (selectedCategory === 'Game' && event.category === 'Oyun') ||
+        (selectedCategory === 'Parti' && event.category === 'Party') ||
+        (selectedCategory === 'Party' && event.category === 'Parti') ||
+        (selectedCategory === 'Masa Oyunları' && event.category === 'Board Games') ||
+        (selectedCategory === 'Board Games' && event.category === 'Masa Oyunları') ||
+        (selectedCategory === 'Konser & Müzik' && event.category === 'Concert & Music') ||
+        (selectedCategory === 'Concert & Music' && event.category === 'Konser & Müzik') ||
+        (selectedCategory === 'Sinema' && event.category === 'Cinema') ||
+        (selectedCategory === 'Cinema' && event.category === 'Sinema') ||
+        (selectedCategory === 'Kitap Kulübü' && event.category === 'Book Club') ||
+        (selectedCategory === 'Book Club' && event.category === 'Kitap Kulübü') ||
+        (selectedCategory === 'Doğa & Kamp' && event.category === 'Nature & Camp') ||
+        (selectedCategory === 'Nature & Camp' && event.category === 'Doğa & Kamp') ||
+        (selectedCategory === 'Yoga & Meditasyon' && event.category === 'Yoga & Meditation') ||
+        (selectedCategory === 'Yoga & Meditation' && event.category === 'Yoga & Meditasyon');
+      if (!categoryMatches) return false;
     }
     
     // İl filtresi
-    if (selectedCity !== 'Tümü') {
+    if (selectedCity !== allCategory) {
       if (!event.city || event.city !== selectedCity) return false;
     }
     
     // İlçe filtresi - sadece bir il seçiliyse kontrol et
-    if (selectedCity !== 'Tümü' && selectedDistrict !== 'Tümü') {
+    if (selectedCity !== allCategory && selectedDistrict !== allCategory) {
       if (!event.district || event.district !== selectedDistrict) return false;
     }
     
@@ -189,9 +218,54 @@ export default function HomeScreen({ navigation }) {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Günaydın';
-    if (hour < 18) return 'İyi Günler';
-    return 'İyi Akşamlar';
+    if (hour < 12) return t(language, 'goodMorning');
+    if (hour < 18) return t(language, 'goodAfternoon');
+    return t(language, 'goodEvening');
+  };
+  
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const day = date.getDate();
+    const monthIndex = date.getMonth();
+    const monthKeys = ['january', 'february', 'march', 'april', 'may', 'june', 
+                      'july', 'august', 'september', 'october', 'november', 'december'];
+    const month = t(language, monthKeys[monthIndex]);
+    return `${day} ${month}`;
+  };
+
+  // Kategori çevirisi için mapping
+  const getCategoryTranslation = (categoryName) => {
+    const categoryMap = {
+      'Kahve & Sohbet': t(language, 'categoryCoffeeChat'),
+      'Coffee & Chat': t(language, 'categoryCoffeeChat'),
+      'Yemek': t(language, 'categoryFood'),
+      'Food': t(language, 'categoryFood'),
+      'Spor': t(language, 'categorySports'),
+      'Sports': t(language, 'categorySports'),
+      'Gezi': t(language, 'categoryTravel'),
+      'Travel': t(language, 'categoryTravel'),
+      'Sanat & Kültür': t(language, 'categoryArtCulture'),
+      'Art & Culture': t(language, 'categoryArtCulture'),
+      'Oyun': t(language, 'categoryGame'),
+      'Game': t(language, 'categoryGame'),
+      'Parti': t(language, 'categoryParty'),
+      'Party': t(language, 'categoryParty'),
+      'Okey101': t(language, 'categoryOkey101'),
+      'Masa Oyunları': t(language, 'categoryBoardGames'),
+      'Board Games': t(language, 'categoryBoardGames'),
+      'Konser & Müzik': t(language, 'categoryConcertMusic'),
+      'Concert & Music': t(language, 'categoryConcertMusic'),
+      'Sinema': t(language, 'categoryCinema'),
+      'Cinema': t(language, 'categoryCinema'),
+      'Kitap Kulübü': t(language, 'categoryBookClub'),
+      'Book Club': t(language, 'categoryBookClub'),
+      'Doğa & Kamp': t(language, 'categoryNatureCamp'),
+      'Nature & Camp': t(language, 'categoryNatureCamp'),
+      'Yoga & Meditasyon': t(language, 'categoryYogaMeditation'),
+      'Yoga & Meditation': t(language, 'categoryYogaMeditation'),
+    };
+    return categoryMap[categoryName] || categoryName;
   };
 
   return (
@@ -249,13 +323,13 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.statItem}>
               <Ionicons name="calendar" size={18} color="#666666" />
               <Text style={styles.statNumber}>{myEvents.length}</Text>
-              <Text style={styles.statLabel}>Etkinliğim</Text>
+              <Text style={styles.statLabel}>{t(language, 'myEvents')}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Ionicons name="people" size={18} color="#666666" />
               <Text style={styles.statNumber}>{joinedEvents.length}</Text>
-              <Text style={styles.statLabel}>Katılımım</Text>
+              <Text style={styles.statLabel}>{t(language, 'myParticipations')}</Text>
             </View>
           </View>
         </View>
@@ -268,7 +342,7 @@ export default function HomeScreen({ navigation }) {
             activeOpacity={0.8}
           >
             <Ionicons name="add-circle-outline" size={24} color="#FFFFFF" />
-            <Text style={styles.createEventTitle}>Yeni Etkinlik</Text>
+            <Text style={styles.createEventTitle}>{t(language, 'createEvent')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -278,7 +352,7 @@ export default function HomeScreen({ navigation }) {
             <Ionicons name="search-outline" size={20} color="#999999" />
             <TextInput
               style={styles.searchInput}
-              placeholder="Etkinlik ara..."
+              placeholder={t(language, 'searchEvent')}
               placeholderTextColor="#999999"
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -299,36 +373,36 @@ export default function HomeScreen({ navigation }) {
         </View>
 
         {/* Active Filters Display */}
-        {(selectedCategory !== 'Tümü' || selectedCity !== 'Tümü' || selectedDistrict !== 'Tümü') && (
+        {(selectedCategory !== (language === 'tr' ? 'Tümü' : 'All') || selectedCity !== (language === 'tr' ? 'Tümü' : 'All') || selectedDistrict !== (language === 'tr' ? 'Tümü' : 'All')) && (
           <View style={styles.activeFiltersContainer}>
             <ScrollView 
               horizontal 
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.activeFiltersContent}
             >
-              {selectedCategory !== 'Tümü' && (
+              {selectedCategory !== (language === 'tr' ? 'Tümü' : 'All') && (
                 <View style={styles.activeFilterChip}>
                   <Ionicons name="pricetag" size={14} color="#000000" />
-                  <Text style={styles.activeFilterText}>{selectedCategory}</Text>
-                  <TouchableOpacity onPress={() => setSelectedCategory('Tümü')}>
+                  <Text style={styles.activeFilterText}>{getCategoryTranslation(selectedCategory)}</Text>
+                  <TouchableOpacity onPress={() => setSelectedCategory(language === 'tr' ? 'Tümü' : 'All')}>
                     <Ionicons name="close" size={14} color="#000000" />
                   </TouchableOpacity>
                 </View>
               )}
-              {selectedCity !== 'Tümü' && (
+              {selectedCity !== (language === 'tr' ? 'Tümü' : 'All') && (
                 <View style={styles.activeFilterChip}>
                   <Ionicons name="business" size={14} color="#000000" />
                   <Text style={styles.activeFilterText}>{selectedCity}</Text>
-                  <TouchableOpacity onPress={() => handleCityChange('Tümü')}>
+                  <TouchableOpacity onPress={() => handleCityChange(language === 'tr' ? 'Tümü' : 'All')}>
                     <Ionicons name="close" size={14} color="#000000" />
                   </TouchableOpacity>
                 </View>
               )}
-              {selectedDistrict !== 'Tümü' && (
+              {selectedDistrict !== (language === 'tr' ? 'Tümü' : 'All') && (
                 <View style={styles.activeFilterChip}>
                   <Ionicons name="location" size={14} color="#000000" />
                   <Text style={styles.activeFilterText}>{selectedDistrict}</Text>
-                  <TouchableOpacity onPress={() => setSelectedDistrict('Tümü')}>
+                  <TouchableOpacity onPress={() => setSelectedDistrict(language === 'tr' ? 'Tümü' : 'All')}>
                     <Ionicons name="close" size={14} color="#000000" />
                   </TouchableOpacity>
                 </View>
@@ -341,7 +415,9 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>
-              {filteredEvents.length > 0 ? `${filteredEvents.length} Etkinlik Bulundu` : 'Yaklaşan Etkinlikler'}
+              {filteredEvents.length > 0 
+                ? `${filteredEvents.length} ${t(language, 'eventsFound')}` 
+                : t(language, 'upcomingEvents')}
             </Text>
           </View>
 
@@ -353,14 +429,14 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.emptyState}>
               <Ionicons name="search-outline" size={48} color="#E0E0E0" />
               <Text style={styles.emptyTitle}>
-                {searchQuery || selectedCategory !== 'Tümü' || selectedCity !== 'Tümü' || selectedDistrict !== 'Tümü'
-                  ? 'Sonuç bulunamadı' 
-                  : 'Henüz etkinlik yok'}
+                {searchQuery || selectedCategory !== (language === 'tr' ? 'Tümü' : 'All') || selectedCity !== (language === 'tr' ? 'Tümü' : 'All') || selectedDistrict !== (language === 'tr' ? 'Tümü' : 'All')
+                  ? (language === 'tr' ? 'Sonuç bulunamadı' : 'No results found')
+                  : (language === 'tr' ? 'Henüz etkinlik yok' : 'No events yet')}
               </Text>
               <Text style={styles.emptyText}>
-                {searchQuery || selectedCategory !== 'Tümü' || selectedCity !== 'Tümü' || selectedDistrict !== 'Tümü'
-                  ? 'Arama kriterlerinizi değiştirip tekrar deneyin'
-                  : 'İlk etkinliğini oluştur veya mevcut etkinliklere katıl'}
+                {searchQuery || selectedCategory !== (language === 'tr' ? 'Tümü' : 'All') || selectedCity !== (language === 'tr' ? 'Tümü' : 'All') || selectedDistrict !== (language === 'tr' ? 'Tümü' : 'All')
+                  ? (language === 'tr' ? 'Arama kriterlerinizi değiştirip tekrar deneyin' : 'Try changing your search criteria')
+                  : (language === 'tr' ? 'İlk etkinliğini oluştur veya mevcut etkinliklere katıl' : 'Create your first event or join existing events')}
               </Text>
             </View>
           ) : (
@@ -372,13 +448,21 @@ export default function HomeScreen({ navigation }) {
                   onPress={() => navigation.navigate('EventDetail', { eventId: event.id })}
                   activeOpacity={0.7}
                 >
-                  {/* Event Image - if available */}
+                  {/* Event Image or Placeholder */}
                   {event.images && event.images.length > 0 && (
-                    <Image
-                      source={{ uri: event.images[0] }}
-                      style={styles.eventCardImage}
-                      resizeMode="cover"
-                    />
+                    <>
+                      {typeof event.images[0] === 'object' && event.images[0].isPlaceholder ? (
+                        <View style={[styles.eventCardImage, { backgroundColor: event.images[0].color, justifyContent: 'center', alignItems: 'center' }]}>
+                          <Text style={{ fontSize: 48 }}>{event.images[0].icon}</Text>
+                        </View>
+                      ) : (
+                        <Image
+                          source={{ uri: event.images[0] }}
+                          style={styles.eventCardImage}
+                          resizeMode="cover"
+                        />
+                      )}
+                    </>
                   )}
                   
                   <View style={styles.eventCardLeft}>
@@ -387,14 +471,14 @@ export default function HomeScreen({ navigation }) {
                         {new Date(event.date).getDate()}
                       </Text>
                       <Text style={styles.eventDateMonth}>
-                        {new Date(event.date).toLocaleDateString('tr-TR', { month: 'short' }).toUpperCase()}
+                        {formatDate(event.date).split(' ')[1]?.toUpperCase() || ''}
                       </Text>
                     </View>
                     <View style={styles.eventCardContent}>
                       <View style={styles.eventCardTop}>
                         <Text style={styles.eventTitle} numberOfLines={1}>{event.eventName}</Text>
                         <View style={styles.eventCategoryBadge}>
-                          <Text style={styles.eventCategoryText}>{event.category}</Text>
+                          <Text style={styles.eventCategoryText}>{getCategoryTranslation(event.category)}</Text>
                         </View>
                       </View>
                       <View style={styles.eventCardBottom}>
@@ -439,7 +523,7 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.modalOverlay}>
           <View style={styles.filterModal}>
             <View style={styles.filterModalHeader}>
-              <Text style={styles.filterModalTitle}>Filtreler</Text>
+              <Text style={styles.filterModalTitle}>{t(language, 'filter')}</Text>
               <TouchableOpacity onPress={() => setShowFilters(false)}>
                 <Ionicons name="close" size={28} color="#000000" />
               </TouchableOpacity>
@@ -450,7 +534,7 @@ export default function HomeScreen({ navigation }) {
               <View style={styles.filterSection}>
                 <View style={styles.filterSectionHeader}>
                   <Ionicons name="pricetag-outline" size={20} color="#000000" />
-                  <Text style={styles.filterSectionTitle}>Kategori</Text>
+                  <Text style={styles.filterSectionTitle}>{language === 'tr' ? 'Kategori' : 'Category'}</Text>
                 </View>
                 <View style={styles.filterChipsContainer}>
                   {categories.map((cat) => (
@@ -478,7 +562,7 @@ export default function HomeScreen({ navigation }) {
               <View style={styles.filterSection}>
                 <View style={styles.filterSectionHeader}>
                   <Ionicons name="business-outline" size={20} color="#000000" />
-                  <Text style={styles.filterSectionTitle}>İl</Text>
+                  <Text style={styles.filterSectionTitle}>{language === 'tr' ? 'İl' : 'City'}</Text>
                 </View>
                 <View style={styles.filterChipsContainer}>
                   {cities.map((cityItem) => (
@@ -503,11 +587,11 @@ export default function HomeScreen({ navigation }) {
               </View>
 
               {/* District Filter */}
-              {selectedCity !== 'Tümü' && getAvailableDistricts().length > 0 && (
+              {selectedCity !== (language === 'tr' ? 'Tümü' : 'All') && getAvailableDistricts().length > 0 && (
                 <View style={styles.filterSection}>
                   <View style={styles.filterSectionHeader}>
                     <Ionicons name="location-outline" size={20} color="#000000" />
-                    <Text style={styles.filterSectionTitle}>İlçe</Text>
+                    <Text style={styles.filterSectionTitle}>{language === 'tr' ? 'İlçe' : 'District'}</Text>
                   </View>
                   <View style={styles.filterChipsContainer}>
                     {getAvailableDistricts().map((districtItem) => (
@@ -537,22 +621,23 @@ export default function HomeScreen({ navigation }) {
               <TouchableOpacity
                 style={styles.resetFiltersButton}
                 onPress={() => {
-                  setSelectedCategory('Tümü');
-                  setSelectedCity('Tümü');
-                  setSelectedDistrict('Tümü');
+                  const allCategory = language === 'tr' ? 'Tümü' : 'All';
+                  setSelectedCategory(allCategory);
+                  setSelectedCity(allCategory);
+                  setSelectedDistrict(allCategory);
                   setSearchQuery('');
                 }}
                 activeOpacity={0.7}
               >
                 <Ionicons name="refresh-outline" size={20} color="#666666" />
-                <Text style={styles.resetFiltersText}>Filtreleri Temizle</Text>
+                <Text style={styles.resetFiltersText}>{t(language, 'clearFilters')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.applyFiltersButton}
                 onPress={() => setShowFilters(false)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.applyFiltersText}>Uygula</Text>
+                <Text style={styles.applyFiltersText}>{t(language, 'applyFilters')}</Text>
                 <Ionicons name="checkmark" size={20} color="#FFFFFF" />
               </TouchableOpacity>
             </View>

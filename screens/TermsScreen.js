@@ -7,8 +7,12 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useLanguage } from '../context/LanguageContext';
+import { t } from '../locales/translations';
 
 export default function TermsScreen({ navigation }) {
+  const { language } = useLanguage();
+  
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
@@ -21,7 +25,7 @@ export default function TermsScreen({ navigation }) {
         >
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Hizmet Şartları</Text>
+        <Text style={styles.headerTitle}>{t(language, 'termsTitle')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -30,95 +34,84 @@ export default function TermsScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.content}>
-          <Text style={styles.lastUpdated}>Son Güncelleme: 12 Kasım 2025</Text>
+          <Text style={styles.lastUpdated}>{t(language, 'termsLastUpdated')}</Text>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>1. Hizmet Tanımı</Text>
+            <Text style={styles.sectionTitle}>{t(language, 'serviceDescription')}</Text>
             <Text style={styles.paragraph}>
-              Event App ("Uygulama"), kullanıcıların etkinlik oluşturmasına, 
-              katılmasına ve yönetmesine olanak tanıyan bir mobil platformdur. 
-              Uygulamayı kullanarak, bu şartları kabul etmiş sayılırsınız.
+              {t(language, 'serviceDescriptionText')}
             </Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>2. Kullanıcı Yükümlülükleri</Text>
+            <Text style={styles.sectionTitle}>{t(language, 'userObligations')}</Text>
             <Text style={styles.paragraph}>
-              Uygulamayı kullanırken:
+              {t(language, 'userObligationsIntro')}
             </Text>
-            <Text style={styles.bulletPoint}>• Doğru ve güncel bilgiler sağlamalısınız</Text>
-            <Text style={styles.bulletPoint}>• Hesap güvenliğinizden sorumlu olmalısınız</Text>
-            <Text style={styles.bulletPoint}>• Yasa dışı içerik paylaşmamalısınız</Text>
-            <Text style={styles.bulletPoint}>• Diğer kullanıcılara saygılı davranmalısınız</Text>
-            <Text style={styles.bulletPoint}>• Telif haklarına saygı göstermelisiniz</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'userObligation1')}</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'userObligation2')}</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'userObligation3')}</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'userObligation4')}</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'userObligation5')}</Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>3. Etkinlik Oluşturma ve Yönetimi</Text>
+            <Text style={styles.sectionTitle}>{t(language, 'eventManagement')}</Text>
             <Text style={styles.paragraph}>
-              Etkinlik oluştururken:
+              {t(language, 'eventManagementIntro')}
             </Text>
-            <Text style={styles.bulletPoint}>• Doğru ve eksiksiz bilgi vermelisiniz</Text>
-            <Text style={styles.bulletPoint}>• Yanıltıcı içerik oluşturmamalısınız</Text>
-            <Text style={styles.bulletPoint}>• Etkinliğinizin yasal olduğundan emin olmalısınız</Text>
-            <Text style={styles.bulletPoint}>• Katılımcıların güvenliğinden sorumlusunuz</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'eventManagement1')}</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'eventManagement2')}</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'eventManagement3')}</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'eventManagement4')}</Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>4. İçerik ve Telif Hakları</Text>
+            <Text style={styles.sectionTitle}>{t(language, 'contentCopyright')}</Text>
             <Text style={styles.paragraph}>
-              Uygulamaya yüklediğiniz içeriğin telif haklarına sahip olmalısınız. 
-              Yüklediğiniz içerik için tüm sorumluluk size aittir. Uygulama, 
-              uygunsuz içerikleri kaldırma hakkını saklı tutar.
+              {t(language, 'contentCopyrightText')}
             </Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>5. Hesap Askıya Alma ve Kapatma</Text>
+            <Text style={styles.sectionTitle}>{t(language, 'accountSuspension')}</Text>
             <Text style={styles.paragraph}>
-              Şu durumlarda hesabınız askıya alınabilir veya kapatılabilir:
+              {t(language, 'accountSuspensionIntro')}
             </Text>
-            <Text style={styles.bulletPoint}>• Hizmet şartlarının ihlali</Text>
-            <Text style={styles.bulletPoint}>• Yanıltıcı bilgi paylaşımı</Text>
-            <Text style={styles.bulletPoint}>• Diğer kullanıcıları taciz etme</Text>
-            <Text style={styles.bulletPoint}>• Spam veya kötü amaçlı aktiviteler</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'accountSuspension1')}</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'accountSuspension2')}</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'accountSuspension3')}</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'accountSuspension4')}</Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>6. Sorumluluk Sınırlaması</Text>
+            <Text style={styles.sectionTitle}>{t(language, 'liabilityLimitation')}</Text>
             <Text style={styles.paragraph}>
-              Event App, kullanıcılar tarafından oluşturulan etkinliklerden sorumlu değildir. 
-              Etkinliklere katılım tamamen kullanıcıların kendi sorumluluğundadır. 
-              Uygulama, etkinliklerin güvenliği, kalitesi veya yasallığı konusunda 
-              garanti vermez.
+              {t(language, 'liabilityLimitationText')}
             </Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>7. Değişiklikler</Text>
+            <Text style={styles.sectionTitle}>{t(language, 'changes')}</Text>
             <Text style={styles.paragraph}>
-              Bu hizmet şartları zaman zaman güncellenebilir. Önemli değişiklikler 
-              olduğunda kullanıcılar bilgilendirilecektir. Güncellemelerden sonra 
-              uygulamayı kullanmaya devam etmeniz, yeni şartları kabul ettiğiniz 
-              anlamına gelir.
+              {t(language, 'changesText')}
             </Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>8. İletişim</Text>
+            <Text style={styles.sectionTitle}>{t(language, 'contact')}</Text>
             <Text style={styles.paragraph}>
-              Hizmet şartları hakkında sorularınız için:
+              {t(language, 'contactIntro')}
             </Text>
             <Text style={styles.contactInfo}>
-              E-posta: info@eventapp.com{'\n'}
-              Web: www.eventapp.com
+              {t(language, 'contactEmail')}{'\n'}
+              {t(language, 'contactWeb')}
             </Text>
           </View>
 
           <View style={styles.acceptanceBox}>
             <Text style={styles.acceptanceText}>
-              Bu uygulamayı kullanarak yukarıdaki hizmet şartlarını okuduğunuzu 
-              ve kabul ettiğinizi beyan edersiniz.
+              {t(language, 'termsAcceptance')}
             </Text>
           </View>
         </View>

@@ -11,26 +11,47 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
-import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 import {
   scheduleEventReminders,
   cancelEventNotifications,
   sendNewParticipantNotification,
+  saveNotificationToFirestore,
+  sendEventCancellationNotification,
 } from '../services/notificationService';
+import { useLanguage } from '../context/LanguageContext';
+import { t } from '../locales/translations';
 
 export default function EventDetailScreen({ route, navigation }) {
+  const { language } = useLanguage();
   const { eventId } = route.params;
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [participants, setParticipants] = useState([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [showAllParticipants, setShowAllParticipants] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const user = auth.currentUser;
 
   useEffect(() => {
     loadEventDetails();
+    checkAdminStatus();
   }, [eventId]);
+
+  const checkAdminStatus = async () => {
+    try {
+      if (user) {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setIsAdmin(userData.role === 'admin');
+        }
+      }
+    } catch (error) {
+      console.error('Admin durumu kontrol hatası:', error);
+    }
+  };
 
   const loadEventDetails = async () => {
     try {
@@ -41,12 +62,12 @@ export default function EventDetailScreen({ route, navigation }) {
         // Katılımcıları yükle
         await loadParticipants(eventData.participants || [], eventData.creatorId);
       } else {
-        Alert.alert('Hata', 'Etkinlik bulunamadı');
+        Alert.alert(t(language, 'error'), t(language, 'eventNotFound'));
         navigation.goBack();
       }
     } catch (error) {
       console.error('Etkinlik yükleme hatası:', error);
-      Alert.alert('Hata', 'Etkinlik yüklenirken bir hata oluştu');
+      Alert.alert(t(language, 'error'), t(language, 'eventLoadError'));
     } finally {
       setLoading(false);
     }
@@ -69,7 +90,7 @@ export default function EventDetailScreen({ route, navigation }) {
           const userData = userDoc.data();
           participantData.push({
             id: userId,
-            name: userData.name || 'Kullanıcı',
+            name: userData.name || (language === 'tr' ? 'Kullanıcı' : 'User'),
             gender: userData.gender || '',
             city: userData.city || '',
             isCreator: userId === creatorId,
@@ -108,17 +129,17 @@ export default function EventDetailScreen({ route, navigation }) {
         // Bildirimlerini iptal et
         await cancelEventNotifications(eventId);
         
-        Alert.alert('Başarılı', 'Etkinlikten ayrıldınız');
+        Alert.alert(t(language, 'success'), t(language, 'leaveSuccess'));
       } else {
         // Etkinliğe katıl
         if (eventParticipants.length >= event.capacity && event.capacity > 0) {
-          Alert.alert('Uyarı', 'Etkinlik kapasitesi doldu');
+          Alert.alert(t(language, 'warning'), t(language, 'eventFull'));
           return;
         }
         
         // Get current user name
         const userDoc = await getDoc(doc(db, 'users', user.uid));
-        const currentUserName = userDoc.exists() ? userDoc.data().name : 'Kullanıcı';
+        const currentUserName = userDoc.exists() ? userDoc.data().name : (language === 'tr' ? 'Kullanıcı' : 'User');
         
         await updateDoc(doc(db, 'events', eventId), {
           participants: arrayUnion(user.uid),
@@ -127,19 +148,45 @@ export default function EventDetailScreen({ route, navigation }) {
         // Etkinlik hatırlatıcılarını planla (1 gün ve 1 saat önce)
         await scheduleEventReminders(eventId, event.eventName, event.date);
         
-        // Organizatöre yeni katılımcı bildirimi gönder (eğer organizatör başka biriyse)
+        // ✨ YENİ: Organizatöre VE tüm mevcut katılımcılara bildirim gönder
+        const notificationData = {
+          title: '👥 Yeni Katılımcı!',
+          body: `${currentUserName}, "${event.eventName}" etkinliğine katıldı!`,
+          type: 'new_participant',
+          eventId: eventId,
+        };
+        
+        // 1. Organizatöre gönder (eğer organizatör katılan kişi değilse)
         if (event.creatorId !== user.uid) {
+          console.log('📧 Organizatöre bildirim gönderiliyor...');
+          await saveNotificationToFirestore(event.creatorId, notificationData);
+          // Lokal bildirim de gönder (eğer aynı cihazda aktifse)
           await sendNewParticipantNotification(event.eventName, currentUserName);
         }
         
-        Alert.alert('Başarılı', 'Etkinliğe katıldınız! 🎉\n\nEtkinlik yaklaştığında size hatırlatma bildirimi göndereceğiz.');
+        // 2. Mevcut tüm katılımcılara gönder (katılan kişi ve organizatör hariç)
+        const notifyParticipants = eventParticipants.filter(
+          participantId => participantId !== user.uid && participantId !== event.creatorId
+        );
+        
+        if (notifyParticipants.length > 0) {
+          console.log(`📧 ${notifyParticipants.length} katılımcıya bildirim gönderiliyor...`);
+          // Her katılımcıya Firestore'da bildirim kaydet
+          for (const participantId of notifyParticipants) {
+            await saveNotificationToFirestore(participantId, notificationData);
+          }
+        }
+        
+        console.log(`✅ Toplam ${1 + notifyParticipants.length} kişiye bildirim gönderildi!`);
+        
+        Alert.alert(t(language, 'success'), t(language, 'joinSuccess'));
       }
 
       // Etkinliği yeniden yükle
       loadEventDetails();
     } catch (error) {
       console.error('Katılım hatası:', error);
-      Alert.alert('Hata', 'İşlem yapılırken bir hata oluştu');
+      Alert.alert(t(language, 'error'), t(language, 'operationError'));
     }
   };
 
@@ -168,6 +215,51 @@ export default function EventDetailScreen({ route, navigation }) {
     return `${day}/${month}/${year} - ${hours}:${minutes}`;
   };
 
+  const handleDeleteEvent = () => {
+    Alert.alert(
+      t(language, 'deleteEvent'),
+      t(language, 'deleteEventConfirm'),
+      [
+        {
+          text: t(language, 'cancel'),
+          style: 'cancel',
+        },
+        {
+          text: t(language, 'delete'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Etkinlik bilgilerini al (bildirim için)
+              const eventDoc = await getDoc(doc(db, 'events', eventId));
+              const eventData = eventDoc.data();
+              const participants = eventData?.participants || [];
+              const eventName = eventData?.eventName || '';
+              
+              // Planlanmış bildirimleri iptal et
+              await cancelEventNotifications(eventId);
+              
+              // İptal bildirimi gönder (tüm katılımcılara)
+              await sendEventCancellationNotification(eventId, eventName, participants, language);
+              
+              // Etkinliği sil
+              await deleteDoc(doc(db, 'events', eventId));
+              
+              Alert.alert(t(language, 'success'), t(language, 'deleteEventSuccess'), [
+                {
+                  text: t(language, 'ok'),
+                  onPress: () => navigation.goBack(),
+                },
+              ]);
+            } catch (error) {
+              console.error('Etkinlik silme hatası:', error);
+              Alert.alert(t(language, 'error'), t(language, 'deleteEventError'));
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -179,7 +271,7 @@ export default function EventDetailScreen({ route, navigation }) {
   if (!event) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.errorText}>Etkinlik bulunamadı</Text>
+        <Text style={styles.errorText}>{t(language, 'eventNotFound')}</Text>
       </View>
     );
   }
@@ -205,16 +297,26 @@ export default function EventDetailScreen({ route, navigation }) {
         >
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Etkinlik Detayı</Text>
-        {isCreator && (
-          <TouchableOpacity 
-            style={styles.editButton}
-            onPress={() => navigation.navigate('EditEvent', { eventId: event.id })}
-          >
-            <Text style={styles.editButtonText}>Düzenle</Text>
-          </TouchableOpacity>
-        )}
-        {!isCreator && <View style={styles.placeholder} />}
+        <Text style={styles.headerTitle}>{t(language, 'eventDetail')}</Text>
+        <View style={styles.headerActions}>
+          {isCreator && (
+            <TouchableOpacity 
+              style={styles.editButton}
+              onPress={() => navigation.navigate('EditEvent', { eventId: event.id })}
+            >
+              <Text style={styles.editButtonText}>{t(language, 'edit')}</Text>
+            </TouchableOpacity>
+          )}
+          {(isCreator || isAdmin) && (
+            <TouchableOpacity 
+              style={styles.deleteButton}
+              onPress={handleDeleteEvent}
+            >
+              <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+            </TouchableOpacity>
+          )}
+          {!isCreator && !isAdmin && <View style={styles.placeholder} />}
+        </View>
       </View>
 
       <ScrollView 
@@ -230,14 +332,28 @@ export default function EventDetailScreen({ route, navigation }) {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.photosScrollContent}
             >
-              {event.images.map((imageUrl, index) => (
-                <Image
-                  key={index}
-                  source={{ uri: imageUrl }}
-                  style={styles.eventImage}
-                  resizeMode="cover"
-                />
-              ))}
+              {event.images.map((imageData, index) => {
+                // Placeholder kontrolü
+                if (typeof imageData === 'object' && imageData.isPlaceholder) {
+                  return (
+                    <View 
+                      key={index} 
+                      style={[styles.eventImage, { backgroundColor: imageData.color, justifyContent: 'center', alignItems: 'center' }]}
+                    >
+                      <Text style={{ fontSize: 120 }}>{imageData.icon}</Text>
+                    </View>
+                  );
+                }
+                // Normal Base64 image
+                return (
+                  <Image
+                    key={index}
+                    source={{ uri: imageData }}
+                    style={styles.eventImage}
+                    resizeMode="cover"
+                  />
+                );
+              })}
             </ScrollView>
             
             {event.images.length > 1 && (
@@ -321,7 +437,7 @@ export default function EventDetailScreen({ route, navigation }) {
 
         {/* Description Card */}
         <View style={styles.descriptionCard}>
-          <Text style={styles.sectionTitle}>Açıklama</Text>
+          <Text style={styles.sectionTitle}>{t(language, 'description')}</Text>
           <Text style={styles.descriptionText}>{event.description}</Text>
         </View>
 
@@ -332,7 +448,7 @@ export default function EventDetailScreen({ route, navigation }) {
               <View style={styles.sectionTitleContainer}>
                 <Ionicons name="people" size={20} color="#000000" />
                 <Text style={styles.sectionTitle}>
-                  Katılımcılar ({eventParticipants.length})
+                  {t(language, 'participantsLabel')} ({eventParticipants.length})
                 </Text>
               </View>
             </View>
@@ -361,7 +477,7 @@ export default function EventDetailScreen({ route, navigation }) {
                           <Text style={styles.participantName}>{participant.name}</Text>
                           {participant.isCreator && (
                             <View style={styles.creatorTag}>
-                              <Text style={styles.creatorTagText}>Organizatör</Text>
+                              <Text style={styles.creatorTagText}>{t(language, 'organizerLabel')}</Text>
                             </View>
                           )}
                         </View>
@@ -398,8 +514,8 @@ export default function EventDetailScreen({ route, navigation }) {
                   >
                     <Text style={styles.showMoreText}>
                       {showAllParticipants 
-                        ? '▲ Daha Az Göster' 
-                        : `▼ ${participants.length - 5} Kişi Daha Göster`
+                        ? `▲ ${t(language, 'showMore')}` 
+                        : `▼ ${participants.length - 5} ${t(language, 'showLessPeople')}`
                       }
                     </Text>
                   </TouchableOpacity>
@@ -422,8 +538,8 @@ export default function EventDetailScreen({ route, navigation }) {
             <View style={styles.chatButtonContent}>
               <Text style={styles.chatButtonIcon}>💬</Text>
               <View style={styles.chatButtonTextContainer}>
-                <Text style={styles.chatButtonTitle}>Grup Sohbeti</Text>
-                <Text style={styles.chatButtonSubtitle}>Katılımcılarla mesajlaş</Text>
+                <Text style={styles.chatButtonTitle}>{t(language, 'groupChat')}</Text>
+                <Text style={styles.chatButtonSubtitle}>{t(language, 'chatWithParticipants')}</Text>
               </View>
               <Text style={styles.chatButtonArrow}>›</Text>
             </View>
@@ -443,8 +559,8 @@ export default function EventDetailScreen({ route, navigation }) {
             <View style={styles.rateButtonContent}>
               <Text style={styles.rateButtonIcon}>⭐</Text>
               <View style={styles.rateButtonTextContainer}>
-                <Text style={styles.rateButtonTitle}>Etkinliği Değerlendir</Text>
-                <Text style={styles.rateButtonSubtitle}>Deneyimini paylaş</Text>
+                <Text style={styles.rateButtonTitle}>{t(language, 'rateEventTitle')}</Text>
+                <Text style={styles.rateButtonSubtitle}>{t(language, 'shareExperience')}</Text>
               </View>
               <Text style={styles.rateButtonArrow}>›</Text>
             </View>
@@ -464,7 +580,7 @@ export default function EventDetailScreen({ route, navigation }) {
               styles.joinButtonText,
               isParticipant && styles.leaveButtonText
             ]}>
-              {isParticipant ? 'Etkinlikten Ayrıl' : 'Etkinliğe Katıl'}
+              {isParticipant ? t(language, 'leaveEvent') : t(language, 'joinEvent')}
             </Text>
           </TouchableOpacity>
         )}
@@ -472,7 +588,7 @@ export default function EventDetailScreen({ route, navigation }) {
         {isCreator && (
           <View style={styles.creatorBadgeContainer}>
             <View style={styles.creatorBadge}>
-              <Text style={styles.creatorBadgeText}>✨ Bu etkinlik senin tarafından oluşturuldu</Text>
+              <Text style={styles.creatorBadgeText}>{t(language, 'eventCreatedByYou')}</Text>
             </View>
           </View>
         )}
@@ -525,6 +641,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#000000',
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   editButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -535,6 +656,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#ffffff',
+  },
+  deleteButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFE5E5',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   placeholder: {
     width: 40,

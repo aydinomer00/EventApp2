@@ -16,15 +16,18 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { createAdminAccount } from '../utils/createAdminHelper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLanguage } from '../context/LanguageContext';
+import { t } from '../locales/translations';
 
 export default function LoginScreen({ navigation }) {
+  const { language } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Hata', 'Lütfen tüm alanları doldurun');
+      Alert.alert(t(language, 'error'), t(language, 'fillAllFields'));
       return;
     }
 
@@ -34,19 +37,19 @@ export default function LoginScreen({ navigation }) {
       // Auth state değiştiğinde otomatik olarak ana ekrana yönlendirilecek
     } catch (error) {
       console.error('Giriş hatası:', error.message);
-      let errorMessage = 'Giriş yapılırken bir hata oluştu';
+      let errorMessage = t(language, 'loginError');
       
       if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Geçersiz e-posta adresi';
+        errorMessage = t(language, 'invalidEmail');
       } else if (error.code === 'auth/user-not-found') {
-        errorMessage = 'Bu e-posta adresi ile kayıtlı kullanıcı bulunamadı';
+        errorMessage = t(language, 'userNotFound');
       } else if (error.code === 'auth/wrong-password') {
-        errorMessage = 'Hatalı şifre';
+        errorMessage = t(language, 'wrongPassword');
       } else if (error.code === 'auth/invalid-credential') {
-        errorMessage = 'E-posta veya şifre hatalı';
+        errorMessage = t(language, 'invalidCredentials');
       }
       
-      Alert.alert('Hata', errorMessage);
+      Alert.alert(t(language, 'error'), errorMessage);
     } finally {
       setLoading(false);
     }
@@ -65,15 +68,15 @@ export default function LoginScreen({ navigation }) {
       const adminPassword = '123456';
       
       Alert.alert(
-        'Admin Hesabı Oluştur',
-        `Yeni admin hesabı oluşturulacak:\n\nKullanıcı: ${adminUsername}\nE-posta: ${adminEmail}\nŞifre: 123456`,
+        t(language, 'createAdminAccount'),
+        `${t(language, 'newAdminInfo')}\n\n${t(language, 'username')}: ${adminUsername}\n${t(language, 'email')}: ${adminEmail}\n${t(language, 'password')}: 123456`,
         [
           {
-            text: 'İptal',
+            text: t(language, 'cancel'),
             style: 'cancel',
           },
           {
-            text: 'Oluştur',
+            text: t(language, 'create'),
             onPress: async () => {
               setLoading(true);
               const result = await createAdminAccount(
@@ -88,11 +91,11 @@ export default function LoginScreen({ navigation }) {
                 
                 setLoading(false);
                 Alert.alert(
-                  'Başarılı! 🎉',
-                  `Admin hesabı oluşturuldu!\n\nKullanıcı: ${adminUsername}\nE-posta: ${adminEmail}\nŞifre: ${adminPassword}\n\n⚠️ Bu bilgileri kaydedin!`,
+                  t(language, 'adminCreated'),
+                  `${t(language, 'adminCreatedMessage')}\n\n${t(language, 'username')}: ${adminUsername}\n${t(language, 'email')}: ${adminEmail}\n${t(language, 'password')}: ${adminPassword}\n\n${t(language, 'saveCredentials')}`,
                   [
                     {
-                      text: 'Tamam',
+                      text: t(language, 'ok'),
                       onPress: () => {
                         setEmail(adminEmail);
                         setPassword(adminPassword);
@@ -102,7 +105,7 @@ export default function LoginScreen({ navigation }) {
                 );
               } else {
                 setLoading(false);
-                Alert.alert('Hata', result.message);
+                Alert.alert(t(language, 'error'), result.message);
               }
             },
           },
@@ -110,7 +113,7 @@ export default function LoginScreen({ navigation }) {
       );
     } catch (error) {
       console.error('Admin oluşturma hatası:', error);
-      Alert.alert('Hata', 'Bir hata oluştu');
+      Alert.alert(t(language, 'error'), t(language, 'loginError'));
     }
   };
 
@@ -131,15 +134,15 @@ export default function LoginScreen({ navigation }) {
           />
         </View>
 
-        <Text style={styles.title}>Hoş Geldiniz</Text>
-        <Text style={styles.subtitle}>Hesabınıza giriş yapın</Text>
+        <Text style={styles.title}>{t(language, 'welcomeBack')}</Text>
+        <Text style={styles.subtitle}>{t(language, 'loginSubtitle')}</Text>
 
         <View style={styles.inputContainer}>
           <View style={styles.inputWrapper}>
             <Text style={styles.inputIcon}>📧</Text>
             <TextInput
               style={styles.input}
-              placeholder="E-posta adresiniz"
+              placeholder={t(language, 'emailPlaceholder')}
               placeholderTextColor="#adb5bd"
               value={email}
               onChangeText={setEmail}
@@ -155,7 +158,7 @@ export default function LoginScreen({ navigation }) {
             <Text style={styles.inputIcon}>🔒</Text>
             <TextInput
               style={styles.input}
-              placeholder="Şifreniz"
+              placeholder={t(language, 'passwordPlaceholder')}
               placeholderTextColor="#adb5bd"
               value={password}
               onChangeText={setPassword}
@@ -173,14 +176,14 @@ export default function LoginScreen({ navigation }) {
           {loading ? (
             <ActivityIndicator color="#ffffff" />
           ) : (
-            <Text style={styles.loginButtonText}>Giriş Yap</Text>
+            <Text style={styles.loginButtonText}>{t(language, 'loginButton')}</Text>
           )}
         </TouchableOpacity>
 
         <View style={styles.registerContainer}>
-          <Text style={styles.registerText}>Hesabınız yok mu? </Text>
+          <Text style={styles.registerText}>{t(language, 'noAccount')}</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.registerLink}>Kayıt Ol</Text>
+            <Text style={styles.registerLink}>{t(language, 'signUp')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -189,7 +192,7 @@ export default function LoginScreen({ navigation }) {
           style={styles.adminButton} 
           onPress={handleCreateAdmin}
         >
-          <Text style={styles.adminButtonText}>👑 İlk Admin Hesabını Oluştur</Text>
+          <Text style={styles.adminButtonText}>{t(language, 'createFirstAdmin')}</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>

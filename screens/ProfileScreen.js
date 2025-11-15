@@ -14,9 +14,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
+import { useLanguage } from '../context/LanguageContext';
+import { t } from '../locales/translations';
 
 export default function ProfileScreen({ navigation }) {
   const user = auth.currentUser;
+  const { language } = useLanguage();
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -43,15 +46,15 @@ export default function ProfileScreen({ navigation }) {
 
   const handleLogout = () => {
     Alert.alert(
-      'Çıkış Yap',
-      'Çıkış yapmak istediğinize emin misiniz?',
+      t(language, 'logout'),
+      language === 'tr' ? 'Çıkış yapmak istediğinize emin misiniz?' : 'Are you sure you want to log out?',
       [
         {
-          text: 'İptal',
+          text: t(language, 'cancel'),
           style: 'cancel',
         },
         {
-          text: 'Çıkış Yap',
+          text: t(language, 'logout'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -59,7 +62,7 @@ export default function ProfileScreen({ navigation }) {
               console.log('Çıkış yapıldı');
             } catch (error) {
               console.error('Çıkış hatası:', error);
-              Alert.alert('Hata', 'Çıkış yapılırken bir hata oluştu');
+              Alert.alert(t(language, 'error'), language === 'tr' ? 'Çıkış yapılırken bir hata oluştu' : 'An error occurred during logout');
             }
           },
         },
@@ -132,7 +135,7 @@ export default function ProfileScreen({ navigation }) {
               style={styles.editButton}
               onPress={() => navigation.navigate('EditProfile')}
             >
-              <Text style={styles.editButtonText}>Profili Düzenle</Text>
+              <Text style={styles.editButtonText}>{t(language, 'editProfile')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -140,23 +143,23 @@ export default function ProfileScreen({ navigation }) {
         <View style={styles.statsSection}>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>0</Text>
-            <Text style={styles.statLabel}>Etkinlikler</Text>
+            <Text style={styles.statLabel}>{t(language, 'events')}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={styles.statValue}>0</Text>
-            <Text style={styles.statLabel}>Katılım</Text>
+            <Text style={styles.statLabel}>{t(language, 'participations')}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={styles.statValue}>0</Text>
-            <Text style={styles.statLabel}>Takipçi</Text>
+            <Text style={styles.statLabel}>{t(language, 'followers')}</Text>
           </View>
         </View>
 
           {/* Menu Items */}
           <View style={styles.menuSection}>
-            <Text style={styles.menuTitle}>Genel</Text>
+            <Text style={styles.menuTitle}>{t(language, 'general')}</Text>
             
             <TouchableOpacity 
               style={styles.menuItem}
@@ -165,7 +168,7 @@ export default function ProfileScreen({ navigation }) {
               <View style={styles.menuIcon}>
                 <Ionicons name="settings-outline" size={22} color="#000000" />
               </View>
-              <Text style={styles.menuText}>Ayarlar</Text>
+              <Text style={styles.menuText}>{t(language, 'settings')}</Text>
               <Ionicons name="chevron-forward" size={20} color="#CCCCCC" />
             </TouchableOpacity>
 
@@ -176,7 +179,7 @@ export default function ProfileScreen({ navigation }) {
               <View style={styles.menuIcon}>
                 <Ionicons name="help-circle-outline" size={22} color="#000000" />
               </View>
-              <Text style={styles.menuText}>Yardım & Destek</Text>
+              <Text style={styles.menuText}>{t(language, 'helpSupport')}</Text>
               <Ionicons name="chevron-forward" size={20} color="#CCCCCC" />
             </TouchableOpacity>
 
@@ -187,7 +190,7 @@ export default function ProfileScreen({ navigation }) {
               <View style={styles.menuIcon}>
                 <Ionicons name="information-circle-outline" size={22} color="#000000" />
               </View>
-              <Text style={styles.menuText}>Uygulama Hakkında</Text>
+              <Text style={styles.menuText}>{t(language, 'about')}</Text>
               <Ionicons name="chevron-forward" size={20} color="#CCCCCC" />
             </TouchableOpacity>
           </View>
@@ -197,7 +200,7 @@ export default function ProfileScreen({ navigation }) {
             style={styles.logoutButton} 
             onPress={handleLogout}
           >
-            <Text style={styles.logoutText}>Çıkış Yap</Text>
+            <Text style={styles.logoutText}>{t(language, 'logout')}</Text>
           </TouchableOpacity>
 
           <View style={styles.bottomPadding} />

@@ -12,26 +12,30 @@ import { Ionicons } from '@expo/vector-icons';
 import { signOut } from 'firebase/auth';
 import { deleteDoc, doc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
+import { useLanguage } from '../context/LanguageContext';
+import { t } from '../locales/translations';
 
 export default function SettingsScreen({ navigation }) {
+  const { language } = useLanguage();
+  
   const handleLogout = () => {
     Alert.alert(
-      'Çıkış Yap',
-      'Çıkış yapmak istediğinize emin misiniz?',
+      t(language, 'logout'),
+      language === 'tr' ? 'Çıkış yapmak istediğinize emin misiniz?' : 'Are you sure you want to log out?',
       [
         {
-          text: 'İptal',
+          text: t(language, 'cancel'),
           style: 'cancel',
         },
         {
-          text: 'Çıkış Yap',
+          text: t(language, 'logout'),
           style: 'destructive',
           onPress: async () => {
             try {
               await signOut(auth);
             } catch (error) {
               console.error('Çıkış hatası:', error);
-              Alert.alert('Hata', 'Çıkış yapılırken bir hata oluştu');
+              Alert.alert(t(language, 'error'), language === 'tr' ? 'Çıkış yapılırken bir hata oluştu' : 'An error occurred during logout');
             }
           },
         },
@@ -41,15 +45,17 @@ export default function SettingsScreen({ navigation }) {
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      'Hesabı Sil',
-      'Hesabınızı silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve tüm verileriniz silinecektir.',
+      t(language, 'delete') + ' ' + t(language, 'account'),
+      language === 'tr' 
+        ? 'Hesabınızı silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve tüm verileriniz silinecektir.'
+        : 'Are you sure you want to delete your account? This action cannot be undone and all your data will be deleted.',
       [
         {
-          text: 'İptal',
+          text: t(language, 'cancel'),
           style: 'cancel',
         },
         {
-          text: 'Sil',
+          text: t(language, 'delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -58,16 +64,16 @@ export default function SettingsScreen({ navigation }) {
               await deleteDoc(doc(db, 'users', user.uid));
               // Firebase Auth'dan kullanıcıyı sil
               await user.delete();
-              Alert.alert('Başarılı', 'Hesabınız silindi');
+              Alert.alert(t(language, 'success'), t(language, 'accountDeleted'));
             } catch (error) {
               console.error('Hesap silme hatası:', error);
               if (error.code === 'auth/requires-recent-login') {
                 Alert.alert(
-                  'Güvenlik Uyarısı',
-                  'Hesabınızı silmek için önce çıkış yapıp tekrar giriş yapmanız gerekiyor.'
+                  t(language, 'securityWarning'),
+                  t(language, 'recentLoginRequired')
                 );
               } else {
-                Alert.alert('Hata', 'Hesap silinirken bir hata oluştu');
+                Alert.alert(t(language, 'error'), t(language, 'accountDeleteError'));
               }
             }
           },
@@ -88,7 +94,7 @@ export default function SettingsScreen({ navigation }) {
         >
           <Ionicons name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Ayarlar</Text>
+        <Text style={styles.headerTitle}>{t(language, 'settings')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -98,7 +104,7 @@ export default function SettingsScreen({ navigation }) {
       >
         {/* Account Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>HESAP</Text>
+          <Text style={styles.sectionTitle}>{t(language, 'account')}</Text>
           
           <TouchableOpacity 
             style={styles.menuItem}
@@ -107,14 +113,14 @@ export default function SettingsScreen({ navigation }) {
             <View style={styles.menuIconBox}>
               <Ionicons name="person-outline" size={24} color="#000000" />
             </View>
-            <Text style={styles.menuText}>Hesap Bilgileri</Text>
+            <Text style={styles.menuText}>{t(language, 'accountInfo')}</Text>
             <Ionicons name="chevron-forward" size={20} color="#CCCCCC" />
           </TouchableOpacity>
         </View>
 
         {/* Preferences Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>TERCİHLER</Text>
+          <Text style={styles.sectionTitle}>{t(language, 'preferences')}</Text>
           
           <TouchableOpacity 
             style={styles.menuItem}
@@ -123,7 +129,7 @@ export default function SettingsScreen({ navigation }) {
             <View style={styles.menuIconBox}>
               <Ionicons name="notifications-outline" size={24} color="#000000" />
             </View>
-            <Text style={styles.menuText}>Bildirim Ayarları</Text>
+            <Text style={styles.menuText}>{t(language, 'notificationSettings')}</Text>
             <Ionicons name="chevron-forward" size={20} color="#CCCCCC" />
           </TouchableOpacity>
 
@@ -134,14 +140,14 @@ export default function SettingsScreen({ navigation }) {
             <View style={styles.menuIconBox}>
               <Ionicons name="language-outline" size={24} color="#000000" />
             </View>
-            <Text style={styles.menuText}>Dil Ayarları</Text>
+            <Text style={styles.menuText}>{t(language, 'languageSettings')}</Text>
             <Ionicons name="chevron-forward" size={20} color="#CCCCCC" />
           </TouchableOpacity>
         </View>
 
         {/* Legal Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>YASAL</Text>
+          <Text style={styles.sectionTitle}>{t(language, 'legal')}</Text>
           
           <TouchableOpacity 
             style={styles.menuItem}
@@ -150,7 +156,7 @@ export default function SettingsScreen({ navigation }) {
             <View style={styles.menuIconBox}>
               <Ionicons name="document-text-outline" size={24} color="#000000" />
             </View>
-            <Text style={styles.menuText}>Hizmet Şartları</Text>
+            <Text style={styles.menuText}>{t(language, 'serviceTerms')}</Text>
             <Ionicons name="chevron-forward" size={20} color="#CCCCCC" />
           </TouchableOpacity>
 
@@ -161,35 +167,35 @@ export default function SettingsScreen({ navigation }) {
             <View style={styles.menuIconBox}>
               <Ionicons name="shield-checkmark-outline" size={24} color="#000000" />
             </View>
-            <Text style={styles.menuText}>Gizlilik Politikası</Text>
+            <Text style={styles.menuText}>{t(language, 'privacyPolicy')}</Text>
             <Ionicons name="chevron-forward" size={20} color="#CCCCCC" />
           </TouchableOpacity>
         </View>
 
         {/* Actions Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>İŞLEMLER</Text>
+          <Text style={styles.sectionTitle}>{t(language, 'actions')}</Text>
           
           <TouchableOpacity 
             style={styles.logoutButton}
             onPress={handleLogout}
           >
-            <Ionicons name="log-out-outline" size={20} color="#FFFFFF" style={styles.buttonIcon} />
-            <Text style={styles.logoutButtonText}>Çıkış Yap</Text>
+            <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
+            <Text style={styles.logoutButtonText}>{t(language, 'logout')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
             style={styles.deleteButton}
             onPress={handleDeleteAccount}
           >
-            <Ionicons name="trash-outline" size={20} color="#DC3545" style={styles.buttonIcon} />
-            <Text style={styles.deleteButtonText}>Hesabımı Sil</Text>
+            <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+            <Text style={styles.deleteButtonText}>{t(language, 'deleteMyAccount')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* App Version */}
         <View style={styles.versionContainer}>
-          <Text style={styles.versionText}>Versiyon 1.0.0</Text>
+          <Text style={styles.versionText}>{t(language, 'version')} 1.0.0</Text>
         </View>
 
         <View style={styles.bottomPadding} />
@@ -232,40 +238,43 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   section: {
-    marginTop: 24,
+    marginTop: 28,
     paddingHorizontal: 24,
   },
   sectionTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
-    color: '#999999',
-    marginBottom: 12,
-    letterSpacing: 0.5,
+    color: '#666666',
+    marginBottom: 16,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#ffffff',
-    padding: 18,
+    padding: 20,
     borderRadius: 16,
-    marginBottom: 12,
+    marginBottom: 10,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   menuIconBox: {
-    width: 48,
-    height: 48,
+    width: 44,
+    height: 44,
     borderRadius: 12,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F8F8F8',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: 14,
   },
   menuText: {
     flex: 1,
@@ -277,7 +286,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#000000',
     borderRadius: 16,
-    padding: 18,
+    padding: 20,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -286,9 +295,10 @@ const styles = StyleSheet.create({
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.2,
     shadowRadius: 12,
-    elevation: 5,
+    elevation: 6,
+    gap: 8,
   },
   logoutButtonText: {
     color: '#ffffff',
@@ -297,29 +307,38 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     flexDirection: 'row',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     borderWidth: 2,
-    borderColor: '#dc3545',
+    borderColor: '#FF3B30',
     borderRadius: 16,
-    padding: 18,
+    padding: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
+    shadowColor: '#FF3B30',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
   },
   deleteButtonText: {
-    color: '#dc3545',
+    color: '#FF3B30',
     fontSize: 16,
-    fontWeight: 'bold',
-  },
-  buttonIcon: {
-    marginRight: 8,
+    fontWeight: '700',
   },
   versionContainer: {
     alignItems: 'center',
-    marginTop: 32,
+    marginTop: 40,
+    paddingVertical: 20,
   },
   versionText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#999999',
+    fontWeight: '500',
+    letterSpacing: 0.5,
   },
   bottomPadding: {
     height: 100,

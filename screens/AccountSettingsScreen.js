@@ -10,8 +10,11 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
+import { useLanguage } from '../context/LanguageContext';
+import { t } from '../locales/translations';
 
 export default function AccountSettingsScreen({ navigation }) {
+  const { language } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState(null);
   const user = auth.currentUser;
@@ -34,7 +37,7 @@ export default function AccountSettingsScreen({ navigation }) {
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'Bilinmiyor';
+    if (!dateString) return t(language, 'unknown');
     const date = new Date(dateString);
     const day = date.getDate().toString().padStart(2, '0');
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -62,7 +65,7 @@ export default function AccountSettingsScreen({ navigation }) {
         >
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Hesap Bilgileri</Text>
+        <Text style={styles.headerTitle}>{t(language, 'accountInfo')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -72,39 +75,39 @@ export default function AccountSettingsScreen({ navigation }) {
       >
         {/* Profile Info Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Profil Bilgileri</Text>
+          <Text style={styles.cardTitle}>{t(language, 'profileInfo')}</Text>
           
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>İsim</Text>
-            <Text style={styles.infoValue}>{userData?.name || 'Belirtilmemiş'}</Text>
+            <Text style={styles.infoLabel}>{t(language, 'name')}</Text>
+            <Text style={styles.infoValue}>{userData?.name || t(language, 'notSpecified')}</Text>
           </View>
 
           <View style={styles.infoDivider} />
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>E-posta</Text>
+            <Text style={styles.infoLabel}>{t(language, 'email')}</Text>
             <Text style={styles.infoValue}>{user.email}</Text>
           </View>
 
           <View style={styles.infoDivider} />
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Biyografi</Text>
+            <Text style={styles.infoLabel}>{t(language, 'biography')}</Text>
             <Text style={styles.infoValue}>
-              {userData?.bio || 'Henüz eklenmemiş'}
+              {userData?.bio || t(language, 'notAdded')}
             </Text>
           </View>
         </View>
 
         {/* Account Info Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Hesap Durumu</Text>
+          <Text style={styles.cardTitle}>{t(language, 'accountStatus')}</Text>
           
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Hesap Tipi</Text>
+            <Text style={styles.infoLabel}>{t(language, 'accountType')}</Text>
             <View style={styles.badge}>
               <Text style={styles.badgeText}>
-                {userData?.role === 'admin' ? 'Admin' : 'Kullanıcı'}
+                {userData?.role === 'admin' ? 'Admin' : t(language, 'user')}
               </Text>
             </View>
           </View>
@@ -112,7 +115,7 @@ export default function AccountSettingsScreen({ navigation }) {
           <View style={styles.infoDivider} />
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Kayıt Tarihi</Text>
+            <Text style={styles.infoLabel}>{t(language, 'registrationDate')}</Text>
             <Text style={styles.infoValue}>
               {formatDate(userData?.createdAt)}
             </Text>
@@ -121,7 +124,7 @@ export default function AccountSettingsScreen({ navigation }) {
           <View style={styles.infoDivider} />
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Hesap Durumu</Text>
+            <Text style={styles.infoLabel}>{t(language, 'accountStatusLabel')}</Text>
             <View style={[
               styles.statusBadge,
               userData?.isActive && styles.statusBadgeActive
@@ -130,7 +133,7 @@ export default function AccountSettingsScreen({ navigation }) {
                 styles.statusBadgeText,
                 userData?.isActive && styles.statusBadgeTextActive
               ]}>
-                {userData?.isActive ? '✓ Aktif' : 'Beklemede'}
+                {userData?.isActive ? t(language, 'active') : t(language, 'pending')}
               </Text>
             </View>
           </View>
@@ -138,32 +141,40 @@ export default function AccountSettingsScreen({ navigation }) {
 
         {/* Additional Info Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Ek Bilgiler</Text>
+          <Text style={styles.cardTitle}>{t(language, 'additionalInfo')}</Text>
           
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Cinsiyet</Text>
-            <Text style={styles.infoValue}>{userData?.gender || 'Belirtilmemiş'}</Text>
+            <Text style={styles.infoLabel}>{t(language, 'gender')}</Text>
+            <Text style={styles.infoValue}>
+              {userData?.gender 
+                ? (userData.gender === 'Kadın' || userData.gender === 'Woman' 
+                    ? (language === 'tr' ? 'Kadın' : 'Woman')
+                    : userData.gender === 'Erkek' || userData.gender === 'Man'
+                    ? (language === 'tr' ? 'Erkek' : 'Man')
+                    : userData.gender)
+                : t(language, 'notSpecified')}
+            </Text>
           </View>
 
           <View style={styles.infoDivider} />
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Doğum Yılı</Text>
-            <Text style={styles.infoValue}>{userData?.birthYear || 'Belirtilmemiş'}</Text>
+            <Text style={styles.infoLabel}>{t(language, 'birthYear')}</Text>
+            <Text style={styles.infoValue}>{userData?.birthYear || t(language, 'notSpecified')}</Text>
           </View>
 
           <View style={styles.infoDivider} />
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Şehir</Text>
-            <Text style={styles.infoValue}>{userData?.city || 'Belirtilmemiş'}</Text>
+            <Text style={styles.infoLabel}>{t(language, 'city')}</Text>
+            <Text style={styles.infoValue}>{userData?.city || t(language, 'notSpecified')}</Text>
           </View>
 
           <View style={styles.infoDivider} />
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Instagram</Text>
-            <Text style={styles.infoValue}>@{userData?.instagram || 'Belirtilmemiş'}</Text>
+            <Text style={styles.infoLabel}>{t(language, 'instagram')}</Text>
+            <Text style={styles.infoValue}>@{userData?.instagram || t(language, 'notSpecified')}</Text>
           </View>
         </View>
 
@@ -171,8 +182,7 @@ export default function AccountSettingsScreen({ navigation }) {
         <View style={styles.infoBox}>
           <Text style={styles.infoBoxIcon}>ℹ️</Text>
           <Text style={styles.infoBoxText}>
-            Bazı bilgileriniz kayıt sırasında alınmıştır ve değiştirilemez. 
-            İsim ve biyografi bilgilerinizi "Profili Düzenle" seçeneğinden güncelleyebilirsiniz.
+            {t(language, 'accountInfoNote')}
           </Text>
         </View>
 

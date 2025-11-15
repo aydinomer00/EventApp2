@@ -12,16 +12,22 @@ import {
   Dimensions,
   PanResponder,
   ScrollView,
+  Modal,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import Svg, { Path } from 'react-native-svg';
 import { auth, db } from '../config/firebase';
+import { useLanguage } from '../context/LanguageContext';
+import { t } from '../locales/translations';
+import { getCityNames } from '../data/turkeyCities';
 
 const { width, height } = Dimensions.get('window');
 
 export default function RegisterScreen({ navigation }) {
+  const { language } = useLanguage();
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   
@@ -45,6 +51,7 @@ export default function RegisterScreen({ navigation }) {
   
   // Step 3: Konum
   const [city, setCity] = useState('');
+  const [showCityPicker, setShowCityPicker] = useState(false);
   
   // Step 4: Sosyal Medya
   const [instagram, setInstagram] = useState('');
@@ -92,7 +99,7 @@ export default function RegisterScreen({ navigation }) {
       setEmailError('');
       setIsEmailValid(false);
     } else if (!validateEmail(text)) {
-      setEmailError('Geçerli bir e-posta adresi girin (örn: isim@email.com)');
+      setEmailError(t(language, 'validEmailFormat'));
       setIsEmailValid(false);
     } else {
       setEmailError('');
@@ -102,21 +109,21 @@ export default function RegisterScreen({ navigation }) {
 
   const validateStep1 = () => {
     if (!name || !email || !password || !confirmPassword) {
-      Alert.alert('Hata', 'Lütfen tüm alanları doldurun');
+      Alert.alert(t(language, 'error'), t(language, 'fillAllFields'));
       return false;
     }
     
     if (!validateEmail(email)) {
-      Alert.alert('Geçersiz E-posta', 'Lütfen geçerli bir e-posta adresi girin (örn: isim@email.com)');
+      Alert.alert(t(language, 'invalidEmail'), t(language, 'validEmailFormat'));
       return false;
     }
     
     if (password.length < 6) {
-      Alert.alert('Hata', 'Şifre en az 6 karakter olmalıdır');
+      Alert.alert(t(language, 'error'), t(language, 'passwordTooShort'));
       return false;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Hata', 'Şifreler eşleşmiyor!');
+      Alert.alert(t(language, 'error'), t(language, 'passwordsDontMatch'));
       return false;
     }
     return true;
@@ -124,12 +131,12 @@ export default function RegisterScreen({ navigation }) {
 
   const validateStep2 = () => {
     if (!gender || !birthYear) {
-      Alert.alert('Hata', 'Lütfen tüm alanları doldurun');
+      Alert.alert(t(language, 'error'), t(language, 'fillAllFields'));
       return false;
     }
     const year = parseInt(birthYear);
     if (isNaN(year) || year < 1940 || year > 2010) {
-      Alert.alert('Hata', 'Geçerli bir doğum yılı girin (1940-2010)');
+      Alert.alert(t(language, 'error'), t(language, 'invalidBirthYear'));
       return false;
     }
     return true;
@@ -137,7 +144,7 @@ export default function RegisterScreen({ navigation }) {
 
   const validateStep3 = () => {
     if (!city) {
-      Alert.alert('Hata', 'Lütfen şehir bilgisi girin');
+      Alert.alert(t(language, 'error'), t(language, 'enterCity'));
       return false;
     }
     return true;
@@ -145,7 +152,7 @@ export default function RegisterScreen({ navigation }) {
 
   const validateStep4 = () => {
     if (!instagram) {
-      Alert.alert('Hata', 'Lütfen Instagram kullanıcı adınızı girin');
+      Alert.alert(t(language, 'error'), t(language, 'enterInstagram'));
       return false;
     }
     return true;
@@ -159,7 +166,7 @@ export default function RegisterScreen({ navigation }) {
         // İmza kontrolü
         isValid = signaturePaths.length > 0 || currentSignaturePath.length > 0;
         if (!isValid) {
-          Alert.alert('Uyarı', 'Lütfen parmak izinizi veya imzanızı çizin');
+          Alert.alert(t(language, 'warning'), t(language, 'drawSignatureWarning'));
         }
         break;
       case 1:
@@ -222,17 +229,17 @@ export default function RegisterScreen({ navigation }) {
       
     } catch (error) {
       console.error('Kayıt hatası:', error.message);
-      let errorMessage = 'Kayıt olurken bir hata oluştu';
+      let errorMessage = t(language, 'registrationError');
       
       if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'Bu e-posta adresi zaten kullanılıyor';
+        errorMessage = t(language, 'emailAlreadyInUse');
       } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Geçersiz e-posta adresi';
+        errorMessage = t(language, 'invalidEmail');
       } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'Şifre çok zayıf. Daha güçlü bir şifre seçin';
+        errorMessage = t(language, 'weakPassword');
       }
       
-      Alert.alert('Hata', errorMessage);
+      Alert.alert(t(language, 'error'), errorMessage);
       setLoading(false);
     }
   };
@@ -298,9 +305,9 @@ export default function RegisterScreen({ navigation }) {
 
     return (
       <View style={styles.stepContainer}>
-        <Text style={styles.stepTitle}>Etik Taahhüt</Text>
+        <Text style={styles.stepTitle}>{t(language, 'ethicalCommitment')}</Text>
         <Text style={styles.stepSubtitle}>
-          Uygulamayı kullanırken etik değerlere uygun davranacağınızı taahhüt edin
+          {t(language, 'ethicalSubtitle')}
         </Text>
 
         <View style={styles.signatureContainer}>
@@ -321,7 +328,7 @@ export default function RegisterScreen({ navigation }) {
               <View style={styles.placeholderContainer} pointerEvents="none">
                 <Text style={styles.placeholderIcon}>👆</Text>
                 <Text style={styles.placeholderText}>
-                  Parmak izinizi veya imzanızı çizin
+                  {t(language, 'drawSignature')}
                 </Text>
               </View>
             )}
@@ -340,8 +347,7 @@ export default function RegisterScreen({ navigation }) {
         <View style={styles.infoBox}>
           <Text style={styles.infoIcon}>ℹ️</Text>
           <Text style={styles.infoText}>
-            Bu taahhüt, uygulama içinde saygılı, dürüst ve etik davranışlar sergileyeceğinizi belirtir. 
-            Topluluk kurallarına uygun hareket edeceğinizi onaylamış olursunuz.
+            {t(language, 'ethicalInfo')}
           </Text>
         </View>
       </View>
@@ -350,14 +356,14 @@ export default function RegisterScreen({ navigation }) {
 
   const renderStep1 = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Temel Bilgiler</Text>
-      <Text style={styles.stepSubtitle}>Kayıt olmak için bilgilerinizi girin</Text>
+      <Text style={styles.stepTitle}>{t(language, 'basicInfo')}</Text>
+      <Text style={styles.stepSubtitle}>{t(language, 'basicInfoSubtitle')}</Text>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Ad Soyad</Text>
+        <Text style={styles.label}>{t(language, 'fullName')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="Adınız ve Soyadınız"
+          placeholder={t(language, 'fullNamePlaceholder')}
           value={name}
           onChangeText={setName}
           autoCapitalize="words"
@@ -365,7 +371,7 @@ export default function RegisterScreen({ navigation }) {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>E-posta</Text>
+        <Text style={styles.label}>{t(language, 'email')}</Text>
         <View style={[
           styles.inputWrapper,
           emailError && styles.inputError,
@@ -373,7 +379,7 @@ export default function RegisterScreen({ navigation }) {
         ]}>
           <TextInput
             style={styles.inputField}
-            placeholder="ornek@email.com"
+            placeholder={t(language, 'emailPlaceholder')}
             placeholderTextColor="#adb5bd"
             value={email}
             onChangeText={handleEmailChange}
@@ -394,15 +400,15 @@ export default function RegisterScreen({ navigation }) {
           <Text style={styles.errorText}>{emailError}</Text>
         ) : null}
         {isEmailValid && (
-          <Text style={styles.successText}>✓ Geçerli e-posta adresi</Text>
+          <Text style={styles.successText}>{t(language, 'validEmail')}</Text>
         )}
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Şifre</Text>
+        <Text style={styles.label}>{t(language, 'passwordLabel')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="En az 6 karakter"
+          placeholder={t(language, 'passwordPlaceholder')}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -411,10 +417,10 @@ export default function RegisterScreen({ navigation }) {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Şifre Tekrar</Text>
+        <Text style={styles.label}>{t(language, 'confirmPassword')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="Şifrenizi tekrar girin"
+          placeholder={t(language, 'confirmPasswordPlaceholder')}
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           secureTextEntry
@@ -426,53 +432,53 @@ export default function RegisterScreen({ navigation }) {
 
   const renderStep2 = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Kişisel Bilgiler</Text>
-      <Text style={styles.stepSubtitle}>Sizi daha iyi tanımak için</Text>
+      <Text style={styles.stepTitle}>{t(language, 'personalInfo')}</Text>
+      <Text style={styles.stepSubtitle}>{t(language, 'personalInfoSubtitle')}</Text>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Cinsiyet</Text>
+        <Text style={styles.label}>{t(language, 'gender')}</Text>
         <View style={styles.genderContainer}>
           <TouchableOpacity
             style={[
               styles.genderButton,
-              gender === 'Kadın' && styles.genderButtonActive,
+              (gender === 'Kadın' || gender === 'Woman') && styles.genderButtonActive,
             ]}
-            onPress={() => setGender('Kadın')}
+            onPress={() => setGender(language === 'tr' ? 'Kadın' : 'Woman')}
           >
             <Text
               style={[
                 styles.genderText,
-                gender === 'Kadın' && styles.genderTextActive,
+                (gender === 'Kadın' || gender === 'Woman') && styles.genderTextActive,
               ]}
             >
-              👩 Kadın
+              👩 {language === 'tr' ? 'Kadın' : 'Woman'}
             </Text>
           </TouchableOpacity>
           
           <TouchableOpacity
             style={[
               styles.genderButton,
-              gender === 'Erkek' && styles.genderButtonActive,
+              (gender === 'Erkek' || gender === 'Man') && styles.genderButtonActive,
             ]}
-            onPress={() => setGender('Erkek')}
+            onPress={() => setGender(language === 'tr' ? 'Erkek' : 'Man')}
           >
             <Text
               style={[
                 styles.genderText,
-                gender === 'Erkek' && styles.genderTextActive,
+                (gender === 'Erkek' || gender === 'Man') && styles.genderTextActive,
               ]}
             >
-              👨 Erkek
+              👨 {language === 'tr' ? 'Erkek' : 'Man'}
             </Text>
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Doğum Yılı</Text>
+        <Text style={styles.label}>{t(language, 'birthYear')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="Örn: 1995"
+          placeholder={language === 'tr' ? 'Örn: 1995' : 'E.g: 1995'}
           value={birthYear}
           onChangeText={setBirthYear}
           keyboardType="number-pad"
@@ -482,41 +488,92 @@ export default function RegisterScreen({ navigation }) {
     </View>
   );
 
-  const renderStep3 = () => (
-    <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Konum Bilgisi</Text>
-      <Text style={styles.stepSubtitle}>Nerede yaşıyorsunuz?</Text>
+  const renderStep3 = () => {
+    const cityNames = getCityNames();
+    
+    return (
+      <View style={styles.stepContainer}>
+        <Text style={styles.stepTitle}>{t(language, 'locationInfo')}</Text>
+        <Text style={styles.stepSubtitle}>{t(language, 'locationInfoSubtitle')}</Text>
 
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Şehir</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="İstanbul, Ankara, İzmir..."
-          value={city}
-          onChangeText={setCity}
-          autoCapitalize="words"
-        />
-      </View>
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>{t(language, 'city')}</Text>
+          <TouchableOpacity
+            style={styles.input}
+            onPress={() => setShowCityPicker(true)}
+          >
+            <Text style={[styles.inputText, !city && styles.placeholderText]}>
+              {city || t(language, 'cityPlaceholder')}
+            </Text>
+            <Ionicons name="chevron-down-outline" size={20} color="#666666" />
+          </TouchableOpacity>
+        </View>
 
-      <View style={styles.infoBox}>
-        <Text style={styles.infoIcon}>ℹ️</Text>
-        <Text style={styles.infoText}>
-          Şehir bilginiz etkinlik önerilerimizde kullanılacaktır.
-        </Text>
+        {showCityPicker && (
+          <Modal
+            visible={showCityPicker}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setShowCityPicker(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>{t(language, 'city')}</Text>
+                  <TouchableOpacity onPress={() => setShowCityPicker(false)}>
+                    <Ionicons name="close" size={24} color="#000000" />
+                  </TouchableOpacity>
+                </View>
+                <ScrollView style={styles.cityList}>
+                  {cityNames.map((cityName) => (
+                    <TouchableOpacity
+                      key={cityName}
+                      style={[
+                        styles.cityItem,
+                        city === cityName && styles.cityItemActive
+                      ]}
+                      onPress={() => {
+                        setCity(cityName);
+                        setShowCityPicker(false);
+                      }}
+                    >
+                      <Text style={[
+                        styles.cityItemText,
+                        city === cityName && styles.cityItemTextActive
+                      ]}>
+                        {cityName}
+                      </Text>
+                      {city === cityName && (
+                        <Ionicons name="checkmark" size={20} color="#000000" />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+          </Modal>
+        )}
+
+        <View style={styles.infoBox}>
+          <Text style={styles.infoIcon}>ℹ️</Text>
+          <Text style={styles.infoText}>
+            {t(language, 'locationInfoText')}
+          </Text>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderStep4 = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Sosyal Medya</Text>
-      <Text style={styles.stepSubtitle}>Son bir adım kaldı!</Text>
+      <Text style={styles.stepTitle}>{t(language, 'socialMedia')}</Text>
+      <Text style={styles.stepSubtitle}>{t(language, 'socialMediaSubtitle')}</Text>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Instagram Kullanıcı Adı</Text>
+        <Text style={styles.label}>{t(language, 'instagramUsername')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="@kullaniciadi"
+          placeholder={t(language, 'instagramPlaceholder')}
           value={instagram}
           onChangeText={(text) => setInstagram(text.toLowerCase())}
           autoCapitalize="none"
@@ -528,8 +585,7 @@ export default function RegisterScreen({ navigation }) {
       <View style={styles.infoBox}>
         <Text style={styles.infoIcon}>🔒</Text>
         <Text style={styles.infoText}>
-          Instagram profiliniz kalite kontrol amacıyla incelenecektir. 
-          Onaylandıktan sonra hesabınız aktif hale gelecektir.
+          {t(language, 'instagramInfo')}
         </Text>
       </View>
     </View>
@@ -568,7 +624,7 @@ export default function RegisterScreen({ navigation }) {
         bounces={false}
       >
         <View style={styles.content}>
-          <Text style={styles.title}>Hesap Oluştur</Text>
+          <Text style={styles.title}>{t(language, 'createAccount')}</Text>
           
           {renderProgressBar()}
           
@@ -583,7 +639,7 @@ export default function RegisterScreen({ navigation }) {
               style={styles.backButton} 
               onPress={handleBack}
             >
-              <Text style={styles.backButtonText}>← Geri</Text>
+              <Text style={styles.backButtonText}>{t(language, 'back')}</Text>
             </TouchableOpacity>
           )}
           
@@ -600,16 +656,16 @@ export default function RegisterScreen({ navigation }) {
               <ActivityIndicator color="#ffffff" />
             ) : (
               <Text style={styles.nextButtonText}>
-                {currentStep === totalSteps - 1 ? 'Kayıt Ol' : 'İleri →'}
+                {currentStep === totalSteps - 1 ? t(language, 'registerButton') : t(language, 'nextStep')}
               </Text>
             )}
           </TouchableOpacity>
         </View>
 
         <View style={styles.loginContainer}>
-          <Text style={styles.loginText}>Zaten hesabınız var mı? </Text>
+          <Text style={styles.loginText}>{t(language, 'alreadyHaveAccount')}</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-            <Text style={styles.loginLink}>Giriş Yap</Text>
+            <Text style={styles.loginLink}>{t(language, 'goToLogin')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -743,6 +799,64 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 16,
     color: '#212529',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  inputText: {
+    fontSize: 16,
+    color: '#212529',
+    flex: 1,
+  },
+  placeholderText: {
+    color: '#adb5bd',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: height * 0.7,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+  },
+  cityList: {
+    maxHeight: height * 0.5,
+  },
+  cityItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f5f5f5',
+  },
+  cityItemActive: {
+    backgroundColor: '#f8f9fa',
+  },
+  cityItemText: {
+    fontSize: 16,
+    color: '#212529',
+  },
+  cityItemTextActive: {
+    fontWeight: '600',
+    color: '#000000',
   },
   inputWrapper: {
     flexDirection: 'row',

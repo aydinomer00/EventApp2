@@ -18,9 +18,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 import { db, auth } from '../config/firebase';
-import { pickImage, takePhoto, uploadProfileImage } from '../utils/imageUpload';
+import { pickImage, takePhoto, processProfileImage } from '../utils/imageUpload';
+import { useLanguage } from '../context/LanguageContext';
+import { t } from '../locales/translations';
 
 export default function EditProfileScreen({ navigation }) {
+  const { language } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
@@ -55,7 +58,7 @@ export default function EditProfileScreen({ navigation }) {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['İptal', 'Fotoğraf Çek', 'Galeriden Seç'],
+          options: [t(language, 'cancel'), t(language, 'takePhoto'), t(language, 'chooseFromGallery')],
           cancelButtonIndex: 0,
         },
         async (buttonIndex) => {
@@ -68,12 +71,12 @@ export default function EditProfileScreen({ navigation }) {
       );
     } else {
       Alert.alert(
-        'Fotoğraf Seç',
-        'Nereden fotoğraf eklemek istersiniz?',
+        t(language, 'choosePhoto'),
+        language === 'tr' ? 'Nereden fotoğraf eklemek istersiniz?' : 'Where would you like to add a photo from?',
         [
-          { text: 'İptal', style: 'cancel' },
-          { text: 'Fotoğraf Çek', onPress: handleTakePhoto },
-          { text: 'Galeriden Seç', onPress: handlePickImage },
+          { text: t(language, 'cancel'), style: 'cancel' },
+          { text: t(language, 'takePhoto'), onPress: handleTakePhoto },
+          { text: t(language, 'chooseFromGallery'), onPress: handlePickImage },
         ]
       );
     }
@@ -87,7 +90,7 @@ export default function EditProfileScreen({ navigation }) {
       }
     } catch (error) {
       console.error('Fotoğraf seçme hatası:', error);
-      Alert.alert('Hata', 'Fotoğraf seçilirken bir hata oluştu');
+      Alert.alert(t(language, 'error'), t(language, 'photoSelectError'));
     }
   };
 
@@ -99,19 +102,25 @@ export default function EditProfileScreen({ navigation }) {
       }
     } catch (error) {
       console.error('Fotoğraf çekme hatası:', error);
-      Alert.alert('Hata', 'Fotoğraf çekilirken bir hata oluştu');
+      Alert.alert(t(language, 'error'), t(language, 'photoTakeError'));
     }
   };
 
   const uploadPhoto = async (uri) => {
     setUploadingPhoto(true);
     try {
-      const downloadURL = await uploadProfileImage(user.uid, uri);
-      setPhotoURL(downloadURL);
-      Alert.alert('Başarılı!', 'Fotoğraf yüklendi ✓');
+      console.log('📸 Fotoğraf işleniyor...');
+      
+      // Fotoğrafı küçült ve Base64'e çevir
+      const base64String = await processProfileImage(uri);
+      
+      if (base64String) {
+        setPhotoURL(base64String);
+        Alert.alert(t(language, 'success'), t(language, 'photoReady'));
+      }
     } catch (error) {
-      console.error('Fotoğraf yükleme hatası:', error);
-      Alert.alert('Hata', 'Fotoğraf yüklenirken bir hata oluştu');
+      console.error('❌ Fotoğraf işleme hatası:', error);
+      Alert.alert(t(language, 'error'), t(language, 'photoError'));
     } finally {
       setUploadingPhoto(false);
     }
@@ -119,34 +128,33 @@ export default function EditProfileScreen({ navigation }) {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert('Hata', 'İsim alanı boş olamaz');
+      Alert.alert(t(language, 'error'), t(language, 'nameRequired'));
       return;
     }
 
     setSaving(true);
     try {
-      // Firebase Auth'da ismi ve fotoğrafı güncelle
+      // Firebase Auth'da sadece ismi güncelle (photoURL Base64 olduğu için burada hata veriyor)
       await updateProfile(user, {
         displayName: name,
-        photoURL: photoURL,
       });
 
-      // Firestore'da profili güncelle
+      // Firestore'da profili güncelle (Base64 photoURL burada saklanıyor)
       await updateDoc(doc(db, 'users', user.uid), {
         name: name,
         bio: bio,
-        photoURL: photoURL,
+        photoURL: photoURL, // Base64 string Firestore'da saklanabilir
       });
 
-      Alert.alert('Başarılı!', 'Profiliniz güncellendi ✓', [
+      Alert.alert(t(language, 'success'), t(language, 'profileUpdated'), [
         {
-          text: 'Tamam',
+          text: t(language, 'ok'),
           onPress: () => navigation.goBack(),
         },
       ]);
     } catch (error) {
       console.error('Profil güncelleme hatası:', error);
-      Alert.alert('Hata', 'Profil güncellenirken bir hata oluştu');
+      Alert.alert(t(language, 'error'), language === 'tr' ? 'Profil güncellenirken bir hata oluştu' : 'An error occurred while updating the profile');
     } finally {
       setSaving(false);
     }
@@ -184,7 +192,7 @@ export default function EditProfileScreen({ navigation }) {
         >
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profili Düzenle</Text>
+        <Text style={styles.headerTitle}>{t(language, 'editProfile')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -223,18 +231,18 @@ export default function EditProfileScreen({ navigation }) {
             </View>
           </TouchableOpacity>
           
-          <Text style={styles.avatarLabel}>Profil Fotoğrafı</Text>
+          <Text style={styles.avatarLabel}>{t(language, 'profilePhoto')}</Text>
           <Text style={styles.avatarHelperText}>
-            Fotoğrafını değiştirmek için tıkla
+            {t(language, 'clickToChangePhoto')}
           </Text>
         </View>
 
         {/* Name Input */}
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>İsim</Text>
+          <Text style={styles.label}>{t(language, 'name')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="Adınız Soyadınız"
+            placeholder={t(language, 'namePlaceholder')}
             placeholderTextColor="#666666"
             value={name}
             onChangeText={setName}
@@ -244,10 +252,10 @@ export default function EditProfileScreen({ navigation }) {
 
         {/* Bio Input */}
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Biyografi</Text>
+          <Text style={styles.label}>{t(language, 'biography')}</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
-            placeholder="Kendiniz hakkında birkaç kelime..."
+            placeholder={t(language, 'bioPlaceholder')}
             placeholderTextColor="#666666"
             value={bio}
             onChangeText={setBio}
@@ -261,11 +269,11 @@ export default function EditProfileScreen({ navigation }) {
 
         {/* Email Display (Read-only) */}
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>E-posta</Text>
+          <Text style={styles.label}>{t(language, 'email')}</Text>
           <View style={styles.readOnlyInput}>
             <Text style={styles.readOnlyText}>{user.email}</Text>
           </View>
-          <Text style={styles.helperText}>E-posta adresi değiştirilemez</Text>
+          <Text style={styles.helperText}>{t(language, 'emailCannotChange')}</Text>
         </View>
 
         {/* Save Button */}
@@ -277,7 +285,7 @@ export default function EditProfileScreen({ navigation }) {
           {saving ? (
             <ActivityIndicator color="#ffffff" />
           ) : (
-            <Text style={styles.saveButtonText}>Değişiklikleri Kaydet</Text>
+            <Text style={styles.saveButtonText}>{t(language, 'saveChanges')}</Text>
           )}
         </TouchableOpacity>
 

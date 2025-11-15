@@ -7,8 +7,12 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useLanguage } from '../context/LanguageContext';
+import { t } from '../locales/translations';
 
 export default function PrivacyPolicyScreen({ navigation }) {
+  const { language } = useLanguage();
+  
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
@@ -21,7 +25,7 @@ export default function PrivacyPolicyScreen({ navigation }) {
         >
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Gizlilik Politikası</Text>
+        <Text style={styles.headerTitle}>{t(language, 'privacyTitle')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -30,152 +34,134 @@ export default function PrivacyPolicyScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.content}>
-          <Text style={styles.lastUpdated}>Son Güncelleme: 12 Kasım 2025</Text>
+          <Text style={styles.lastUpdated}>{t(language, 'privacyLastUpdated')}</Text>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>1. Giriş</Text>
+            <Text style={styles.sectionTitle}>{t(language, 'privacyIntroduction')}</Text>
             <Text style={styles.paragraph}>
-              Event App olarak gizliliğinize önem veriyoruz. Bu politika, 
-              kişisel bilgilerinizi nasıl topladığımızı, kullandığımızı ve 
-              koruduğumuzu açıklamaktadır.
+              {t(language, 'privacyIntroductionText')}
             </Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>2. Topladığımız Bilgiler</Text>
+            <Text style={styles.sectionTitle}>{t(language, 'dataCollection')}</Text>
             <Text style={styles.paragraph}>
-              Uygulamamızı kullanırken şu bilgileri topluyoruz:
+              {t(language, 'dataCollectionIntro')}
             </Text>
             <Text style={styles.bulletPoint}>
-              <Text style={styles.bold}>• Hesap Bilgileri:</Text> İsim, e-posta, 
-              doğum yılı, cinsiyet, şehir
+              <Text style={styles.bold}>{t(language, 'accountInfoLabel')}</Text> {t(language, 'accountInfoDetails')}
             </Text>
             <Text style={styles.bulletPoint}>
-              <Text style={styles.bold}>• Profil Bilgileri:</Text> Biyografi, 
-              sosyal medya hesapları
+              <Text style={styles.bold}>{t(language, 'profileInfoLabel')}</Text> {t(language, 'profileInfoDetails')}
             </Text>
             <Text style={styles.bulletPoint}>
-              <Text style={styles.bold}>• Etkinlik Verileri:</Text> Oluşturduğunuz 
-              ve katıldığınız etkinlikler
+              <Text style={styles.bold}>{t(language, 'eventDataLabel')}</Text> {t(language, 'eventDataDetails')}
             </Text>
             <Text style={styles.bulletPoint}>
-              <Text style={styles.bold}>• Cihaz Bilgileri:</Text> IP adresi, 
-              cihaz türü, işletim sistemi
+              <Text style={styles.bold}>{t(language, 'deviceInfoLabel')}</Text> {t(language, 'deviceInfoDetails')}
             </Text>
             <Text style={styles.bulletPoint}>
-              <Text style={styles.bold}>• Konum Bilgileri:</Text> Etkinlik konumları 
-              (opsiyonel)
+              <Text style={styles.bold}>{t(language, 'locationInfoLabel')}</Text> {t(language, 'locationInfoDetails')}
             </Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>3. Bilgilerin Kullanımı</Text>
+            <Text style={styles.sectionTitle}>{t(language, 'dataUsage')}</Text>
             <Text style={styles.paragraph}>
-              Topladığımız bilgileri şu amaçlarla kullanıyoruz:
+              {t(language, 'dataUsageIntro')}
             </Text>
-            <Text style={styles.bulletPoint}>• Hesabınızı oluşturmak ve yönetmek</Text>
-            <Text style={styles.bulletPoint}>• Etkinlik önerileri sunmak</Text>
-            <Text style={styles.bulletPoint}>• Uygulama deneyimini iyileştirmek</Text>
-            <Text style={styles.bulletPoint}>• Güvenlik ve dolandırıcılığı önleme</Text>
-            <Text style={styles.bulletPoint}>• Müşteri desteği sağlamak</Text>
-            <Text style={styles.bulletPoint}>• Yasal yükümlülükleri yerine getirmek</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'dataUsage1')}</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'dataUsage2')}</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'dataUsage3')}</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'dataUsage4')}</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'dataUsage5')}</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'dataUsage6')}</Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>4. Bilgi Paylaşımı</Text>
+            <Text style={styles.sectionTitle}>{t(language, 'dataSharing')}</Text>
             <Text style={styles.paragraph}>
-              Kişisel bilgilerinizi şu durumlarda paylaşabiliriz:
+              {t(language, 'dataSharingIntro')}
             </Text>
             <Text style={styles.bulletPoint}>
-              <Text style={styles.bold}>• Diğer Kullanıcılar:</Text> Profil bilgileri 
-              ve oluşturduğunuz etkinlikler diğer kullanıcılar tarafından görülebilir
+              <Text style={styles.bold}>{t(language, 'otherUsers')}</Text> {t(language, 'otherUsersDetails')}
             </Text>
             <Text style={styles.bulletPoint}>
-              <Text style={styles.bold}>• Hizmet Sağlayıcılar:</Text> Uygulama 
-              altyapısı için güvenilir üçüncü taraf hizmetler
+              <Text style={styles.bold}>{t(language, 'serviceProviders')}</Text> {t(language, 'serviceProvidersDetails')}
             </Text>
             <Text style={styles.bulletPoint}>
-              <Text style={styles.bold}>• Yasal Zorunluluklar:</Text> Yasal talepler 
-              ve mahkeme kararları
+              <Text style={styles.bold}>{t(language, 'legalRequirements')}</Text> {t(language, 'legalRequirementsDetails')}
             </Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>5. Veri Güvenliği</Text>
+            <Text style={styles.sectionTitle}>{t(language, 'dataSecurity')}</Text>
             <Text style={styles.paragraph}>
-              Bilgilerinizi korumak için:
+              {t(language, 'dataSecurityIntro')}
             </Text>
-            <Text style={styles.bulletPoint}>• Şifreli veri iletimi (SSL/TLS)</Text>
-            <Text style={styles.bulletPoint}>• Güvenli veri depolama (Firebase)</Text>
-            <Text style={styles.bulletPoint}>• Düzenli güvenlik güncellemeleri</Text>
-            <Text style={styles.bulletPoint}>• Yetkisiz erişim koruması</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'dataSecurity1')}</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'dataSecurity2')}</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'dataSecurity3')}</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'dataSecurity4')}</Text>
             <Text style={styles.paragraph} style={{marginTop: 12}}>
-              Ancak, internet üzerinden veri iletiminin %100 güvenli olmadığını 
-              lütfen unutmayın.
+              {t(language, 'dataSecurityNote')}
             </Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>6. Çerezler ve İzleme</Text>
+            <Text style={styles.sectionTitle}>{t(language, 'cookiesTracking')}</Text>
             <Text style={styles.paragraph}>
-              Uygulamamız, deneyiminizi iyileştirmek için çerezler ve benzer 
-              teknolojiler kullanır. Bu teknolojiler:
+              {t(language, 'cookiesTrackingIntro')}
             </Text>
-            <Text style={styles.bulletPoint}>• Oturum bilgilerini saklar</Text>
-            <Text style={styles.bulletPoint}>• Tercihlerinizi hatırlar</Text>
-            <Text style={styles.bulletPoint}>• Uygulama performansını analiz eder</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'cookiesTracking1')}</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'cookiesTracking2')}</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'cookiesTracking3')}</Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>7. Haklarınız</Text>
+            <Text style={styles.sectionTitle}>{t(language, 'yourRights')}</Text>
             <Text style={styles.paragraph}>
-              Kişisel verileriniz konusunda şu haklara sahipsiniz:
+              {t(language, 'yourRightsIntro')}
             </Text>
-            <Text style={styles.bulletPoint}>• Verilerinize erişim hakkı</Text>
-            <Text style={styles.bulletPoint}>• Verilerin düzeltilmesini isteme hakkı</Text>
-            <Text style={styles.bulletPoint}>• Verilerin silinmesini isteme hakkı</Text>
-            <Text style={styles.bulletPoint}>• Veri işlemeye itiraz etme hakkı</Text>
-            <Text style={styles.bulletPoint}>• Verilerin taşınabilirliği hakkı</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'yourRights1')}</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'yourRights2')}</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'yourRights3')}</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'yourRights4')}</Text>
+            <Text style={styles.bulletPoint}>{t(language, 'yourRights5')}</Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>8. Çocukların Gizliliği</Text>
+            <Text style={styles.sectionTitle}>{t(language, 'childrenPrivacy')}</Text>
             <Text style={styles.paragraph}>
-              Uygulamamız 13 yaşın altındaki çocuklara yönelik değildir. 
-              13 yaşından küçük çocuklardan bilerek kişisel bilgi toplamıyoruz. 
-              Eğer bir ebeveyn veya vasi iseniz ve çocuğunuzun bize kişisel bilgi 
-              verdiğini düşünüyorsanız, lütfen bizimle iletişime geçin.
+              {t(language, 'childrenPrivacyText')}
             </Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>9. Değişiklikler</Text>
+            <Text style={styles.sectionTitle}>{t(language, 'privacyChanges')}</Text>
             <Text style={styles.paragraph}>
-              Bu gizlilik politikasını zaman zaman güncelleyebiliriz. Önemli 
-              değişiklikler olduğunda sizi bilgilendireceğiz. Güncellenmiş 
-              politika, uygulama üzerinden yayınlandığı tarihte yürürlüğe girer.
+              {t(language, 'privacyChangesText')}
             </Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>10. İletişim</Text>
+            <Text style={styles.sectionTitle}>{t(language, 'privacyContact')}</Text>
             <Text style={styles.paragraph}>
-              Gizlilik politikamız hakkında sorularınız için:
+              {t(language, 'privacyContactIntro')}
             </Text>
             <Text style={styles.contactInfo}>
-              E-posta: privacy@eventapp.com{'\n'}
-              Adres: Event App Inc., İstanbul, Türkiye{'\n'}
-              Web: www.eventapp.com/privacy
+              {t(language, 'privacyContactEmail')}{'\n'}
+              {t(language, 'privacyContactAddress')}{'\n'}
+              {t(language, 'privacyContactWeb')}
             </Text>
           </View>
 
           <View style={styles.privacyBox}>
             <Text style={styles.privacyIcon}>🔒</Text>
             <View style={styles.privacyTextContainer}>
-              <Text style={styles.privacyTitle}>Gizliliğiniz Bizim İçin Önemli</Text>
+              <Text style={styles.privacyTitle}>{t(language, 'privacyImportant')}</Text>
               <Text style={styles.privacyText}>
-                Verilerinizi korumak için en yüksek güvenlik standartlarını 
-                uyguluyoruz ve asla üçüncü taraflara satmıyoruz.
+                {t(language, 'privacyImportantText')}
               </Text>
             </View>
           </View>

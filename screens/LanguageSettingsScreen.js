@@ -1,25 +1,50 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
+import { useLanguage } from '../context/LanguageContext';
+import { t } from '../locales/translations';
 
 export default function LanguageSettingsScreen({ navigation }) {
-  const [selectedLanguage, setSelectedLanguage] = useState('tr');
+  const { language, changeLanguage } = useLanguage();
+  const [selectedLanguage, setSelectedLanguage] = useState(language);
 
   const languages = [
-    { code: 'tr', name: 'Türkçe', flag: '🇹🇷' },
-    { code: 'en', name: 'English', flag: '🇬🇧' },
-    { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-    { code: 'fr', name: 'Français', flag: '🇫🇷' },
-    { code: 'es', name: 'Español', flag: '🇪🇸' },
-    { code: 'it', name: 'Italiano', flag: '🇮🇹' },
-    { code: 'ar', name: 'العربية', flag: '🇸🇦' },
+    { code: 'tr', name: 'Türkçe', flag: '🇹🇷', enabled: true },
+    { code: 'en', name: 'English', flag: '🇬🇧', enabled: true },
+    { code: 'de', name: 'Deutsch', flag: '🇩🇪', enabled: false },
+    { code: 'fr', name: 'Français', flag: '🇫🇷', enabled: false },
+    { code: 'es', name: 'Español', flag: '🇪🇸', enabled: false },
+    { code: 'it', name: 'Italiano', flag: '🇮🇹', enabled: false },
+    { code: 'ar', name: 'العربية', flag: '🇸🇦', enabled: false },
   ];
+
+  const handleLanguageChange = async (languageCode) => {
+    if (languages.find(l => l.code === languageCode)?.enabled) {
+      setSelectedLanguage(languageCode);
+      await changeLanguage(languageCode);
+      Alert.alert(
+        t(languageCode, 'success'),
+        languageCode === 'tr' 
+          ? 'Dil başarıyla değiştirildi!' 
+          : 'Language changed successfully!'
+      );
+    } else {
+      Alert.alert(
+        t(language, 'warning'),
+        t(language, 'selectLanguage') === 'Select app language. Changes will take effect immediately.' 
+          ? 'This language will be available soon.' 
+          : 'Bu dil yakında eklenecektir.'
+      );
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -30,10 +55,11 @@ export default function LanguageSettingsScreen({ navigation }) {
         <TouchableOpacity 
           style={styles.backButton}
           onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
         >
-          <Text style={styles.backButtonText}>←</Text>
+          <Ionicons name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Dil Ayarları</Text>
+        <Text style={styles.headerTitle}>{t(language, 'languageTitle')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -43,30 +69,38 @@ export default function LanguageSettingsScreen({ navigation }) {
       >
         <View style={styles.content}>
           <Text style={styles.description}>
-            Uygulamanın dilini seçin. Değişiklikler hemen uygulanacaktır.
+            {t(language, 'selectLanguage')}
           </Text>
 
           <View style={styles.languageList}>
-            {languages.map((language) => (
+            {languages.map((lang) => (
               <TouchableOpacity
-                key={language.code}
+                key={lang.code}
                 style={[
                   styles.languageItem,
-                  selectedLanguage === language.code && styles.languageItemActive,
+                  selectedLanguage === lang.code && styles.languageItemActive,
+                  !lang.enabled && styles.languageItemDisabled,
                 ]}
-                onPress={() => setSelectedLanguage(language.code)}
+                onPress={() => handleLanguageChange(lang.code)}
+                activeOpacity={0.7}
               >
-                <Text style={styles.languageFlag}>{language.flag}</Text>
+                <Text style={styles.languageFlag}>{lang.flag}</Text>
                 <Text style={[
                   styles.languageName,
-                  selectedLanguage === language.code && styles.languageNameActive,
+                  selectedLanguage === lang.code && styles.languageNameActive,
+                  !lang.enabled && styles.languageNameDisabled,
                 ]}>
-                  {language.name}
+                  {lang.name}
                 </Text>
-                {selectedLanguage === language.code && (
-                  <View style={styles.checkmark}>
-                    <Text style={styles.checkmarkText}>✓</Text>
+                {!lang.enabled && (
+                  <View style={styles.comingSoonBadge}>
+                    <Text style={styles.comingSoonText}>
+                      {language === 'tr' ? 'Yakında' : 'Soon'}
+                    </Text>
                   </View>
+                )}
+                {selectedLanguage === lang.code && lang.enabled && (
+                  <Ionicons name="checkmark-circle" size={28} color="#34c759" />
                 )}
               </TouchableOpacity>
             ))}
@@ -74,10 +108,11 @@ export default function LanguageSettingsScreen({ navigation }) {
 
           {/* Info Box */}
           <View style={styles.infoBox}>
-            <Text style={styles.infoBoxIcon}>ℹ️</Text>
+            <Ionicons name="information-circle" size={24} color="#007AFF" />
             <Text style={styles.infoBoxText}>
-              Şu anda yalnızca Türkçe dil desteği mevcuttur. 
-              Diğer diller yakında eklenecektir.
+              {language === 'tr' 
+                ? 'Şu anda Türkçe ve İngilizce dil desteği mevcuttur. Diğer diller yakında eklenecektir.' 
+                : 'Currently Turkish and English are available. Other languages will be added soon.'}
             </Text>
           </View>
         </View>
@@ -106,14 +141,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F5F5F5',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: '#000000',
-    fontWeight: 'bold',
   },
   headerTitle: {
     fontSize: 18,
@@ -161,6 +191,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     elevation: 5,
   },
+  languageItemDisabled: {
+    opacity: 0.5,
+  },
   languageFlag: {
     fontSize: 32,
     marginRight: 16,
@@ -174,36 +207,35 @@ const styles = StyleSheet.create({
   languageNameActive: {
     color: '#ffffff',
   },
-  checkmark: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#34c759',
-    alignItems: 'center',
-    justifyContent: 'center',
+  languageNameDisabled: {
+    color: '#999999',
   },
-  checkmarkText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#ffffff',
+  comingSoonBadge: {
+    backgroundColor: '#FFE5B4',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  comingSoonText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#FF8C00',
   },
   infoBox: {
     flexDirection: 'row',
-    backgroundColor: '#fff3cd',
+    backgroundColor: '#E3F2FD',
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#ffc107',
+    borderColor: '#BBDEFB',
     alignItems: 'flex-start',
-  },
-  infoBoxIcon: {
-    fontSize: 20,
-    marginRight: 12,
+    gap: 12,
   },
   infoBoxText: {
     flex: 1,
     fontSize: 13,
-    color: '#856404',
+    color: '#1976D2',
     lineHeight: 20,
   },
   bottomPadding: {

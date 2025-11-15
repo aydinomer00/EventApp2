@@ -164,67 +164,133 @@ export async function sendNewParticipantNotification(eventName, participantName)
 }
 
 /**
- * Send admin approval notification
+ * Save notification to Firestore for specific user
  */
-export async function sendAdminApprovalNotification(isApproved) {
+export async function saveNotificationToFirestore(userId, notificationData) {
   try {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: isApproved ? '✅ Hesap Onaylandı!' : '❌ Hesap Reddedildi',
-        body: isApproved 
-          ? 'Hesabınız onaylandı! Artık etkinliklere katılabilirsiniz.'
-          : 'Hesabınız onaylanmadı. Daha fazla bilgi için destek ile iletişime geçin.',
-        data: { type: 'admin_approval', isApproved },
-        sound: true,
-      },
-      trigger: null,
-    });
-  } catch (error) {
-    console.error('Error sending approval notification:', error);
-  }
-}
-
-/**
- * Send event cancellation notification
- */
-export async function sendEventCancellationNotification(eventName) {
-  try {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: '❌ Etkinlik İptal Edildi',
-        body: `"${eventName}" etkinliği iptal edildi.`,
-        data: { type: 'event_cancelled' },
-        sound: true,
-      },
-      trigger: null,
-    });
-  } catch (error) {
-    console.error('Error sending cancellation notification:', error);
-  }
-}
-
-/**
- * Send event update notification
- */
-export async function sendEventUpdateNotification(eventName, updateType = 'updated') {
-  try {
-    const messages = {
-      updated: 'güncellendi',
-      date_changed: 'tarihi değişti',
-      location_changed: 'konumu değişti',
-    };
+    const { collection, addDoc } = require('firebase/firestore');
     
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: '📝 Etkinlik Güncellendi',
-        body: `"${eventName}" etkinliği ${messages[updateType] || messages.updated}.`,
-        data: { type: 'event_updated', updateType },
-        sound: true,
-      },
-      trigger: null,
+    await addDoc(collection(db, 'notifications'), {
+      userId: userId,
+      title: notificationData.title,
+      body: notificationData.body,
+      type: notificationData.type,
+      eventId: notificationData.eventId || null,
+      read: false,
+      createdAt: new Date().toISOString(),
     });
+    
+    console.log(`✅ Bildirim Firestore'a kaydedildi (User: ${userId})`);
   } catch (error) {
-    console.error('Error sending update notification:', error);
+    console.error('❌ Firestore bildirim kaydetme hatası:', error);
+  }
+}
+
+/**
+ * Send admin approval notification to specific user
+ */
+export async function sendAdminApprovalNotification(userId, isApproved, language = 'tr') {
+  try {
+    if (!userId) {
+      console.error('❌ UserId gerekli!');
+      return;
+    }
+
+    const notificationData = {
+      title: isApproved 
+        ? (language === 'tr' ? '✅ Hesap Onaylandı!' : '✅ Account Approved!')
+        : (language === 'tr' ? '❌ Hesap Reddedildi' : '❌ Account Rejected'),
+      body: isApproved 
+        ? (language === 'tr' 
+          ? 'Hesabınız onaylandı! Artık etkinliklere katılabilirsiniz.'
+          : 'Your account has been approved! You can now join events.')
+        : (language === 'tr'
+          ? 'Hesabınız onaylanmadı. Daha fazla bilgi için destek ile iletişime geçin.'
+          : 'Your account was not approved. Please contact support for more information.'),
+      type: 'admin_approval',
+      isApproved: isApproved,
+    };
+
+    // Firestore'a kaydet (onaylanan kullanıcı için)
+    await saveNotificationToFirestore(userId, notificationData);
+    
+    console.log(`✅ Onay bildirimi gönderildi (User: ${userId}, Approved: ${isApproved})`);
+  } catch (error) {
+    console.error('❌ Onay bildirimi gönderme hatası:', error);
+  }
+}
+
+/**
+ * Send event cancellation notification to all participants
+ */
+export async function sendEventCancellationNotification(eventId, eventName, participants = [], language = 'tr') {
+  try {
+    if (!eventId || !participants || participants.length === 0) {
+      console.log('⚠️ Etkinlik iptal bildirimi: Katılımcı yok');
+      return;
+    }
+
+    const notificationData = {
+      title: language === 'tr' ? '❌ Etkinlik İptal Edildi' : '❌ Event Cancelled',
+      body: language === 'tr' 
+        ? `"${eventName}" etkinliği iptal edildi.`
+        : `"${eventName}" event has been cancelled.`,
+      type: 'event_cancelled',
+      eventId: eventId,
+    };
+
+    // Tüm katılımcılara bildirim gönder
+    for (const participantId of participants) {
+      await saveNotificationToFirestore(participantId, notificationData);
+    }
+    
+    console.log(`✅ İptal bildirimi gönderildi (${participants.length} katılımcı)`);
+  } catch (error) {
+    console.error('❌ İptal bildirimi gönderme hatası:', error);
+  }
+}
+
+/**
+ * Send event update notification to all participants
+ */
+export async function sendEventUpdateNotification(eventId, eventName, participants = [], updateType = 'updated', language = 'tr') {
+  try {
+    if (!eventId || !participants || participants.length === 0) {
+      console.log('⚠️ Etkinlik güncelleme bildirimi: Katılımcı yok');
+      return;
+    }
+
+    const messages = {
+      tr: {
+        updated: 'güncellendi',
+        date_changed: 'tarihi değişti',
+        location_changed: 'konumu değişti',
+      },
+      en: {
+        updated: 'has been updated',
+        date_changed: 'date has changed',
+        location_changed: 'location has changed',
+      },
+    };
+
+    const notificationData = {
+      title: language === 'tr' ? '📝 Etkinlik Güncellendi' : '📝 Event Updated',
+      body: language === 'tr'
+        ? `"${eventName}" etkinliği ${messages.tr[updateType] || messages.tr.updated}.`
+        : `"${eventName}" event ${messages.en[updateType] || messages.en.updated}.`,
+      type: 'event_updated',
+      eventId: eventId,
+      updateType: updateType,
+    };
+
+    // Tüm katılımcılara bildirim gönder
+    for (const participantId of participants) {
+      await saveNotificationToFirestore(participantId, notificationData);
+    }
+    
+    console.log(`✅ Güncelleme bildirimi gönderildi (${participants.length} katılımcı)`);
+  } catch (error) {
+    console.error('❌ Güncelleme bildirimi gönderme hatası:', error);
   }
 }
 

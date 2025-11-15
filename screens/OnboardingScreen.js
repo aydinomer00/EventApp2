@@ -11,10 +11,13 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Path } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLanguage } from '../context/LanguageContext';
+import { t } from '../locales/translations';
 
 const { width, height } = Dimensions.get('window');
 
 export default function OnboardingScreen({ navigation }) {
+  const { language } = useLanguage();
   const [paths, setPaths] = useState([]);
   const [currentPath, setCurrentPath] = useState([]);
   const panResponder = useRef(
@@ -40,7 +43,7 @@ export default function OnboardingScreen({ navigation }) {
 
   const handleSignatureComplete = async () => {
     if (paths.length === 0 && currentPath.length === 0) {
-      Alert.alert('Uyarı', 'Lütfen parmak izinizi veya imzanızı çizin');
+      Alert.alert(t(language, 'warning'), t(language, 'pleaseDrawSignature'));
       return;
     }
     // Onboarding'i tamamlandı olarak işaretle
@@ -100,9 +103,9 @@ export default function OnboardingScreen({ navigation }) {
       <View style={styles.content}>
         {/* Başlık */}
         <View style={styles.header}>
-          <Text style={styles.title}>Etik Taahhüt</Text>
+          <Text style={styles.title}>{t(language, 'ethicalCommitment')}</Text>
           <Text style={styles.subtitle}>
-            Uygulamayı kullanırken etik değerlere uygun davranacağınızı taahhüt edin
+            {t(language, 'ethicalCommitmentSubtitle')}
           </Text>
         </View>
 
@@ -125,7 +128,7 @@ export default function OnboardingScreen({ navigation }) {
               <View style={styles.placeholderContainer} pointerEvents="none">
                 <Text style={styles.placeholderIcon}>👆</Text>
                 <Text style={styles.placeholderText}>
-                  Parmak izinizi veya imzanızı çizin
+                  {t(language, 'drawSignature')}
                 </Text>
               </View>
             )}
@@ -145,8 +148,7 @@ export default function OnboardingScreen({ navigation }) {
         <View style={styles.infoBox}>
           <Text style={styles.infoIcon}>ℹ️</Text>
           <Text style={styles.infoText}>
-            Bu taahhüt, uygulama içinde saygılı, dürüst ve etik davranışlar sergileyeceğinizi belirtir. 
-            Topluluk kurallarına uygun hareket edeceğinizi onaylamış olursunuz.
+            {t(language, 'commitmentInfo')}
           </Text>
         </View>
 
@@ -161,7 +163,7 @@ export default function OnboardingScreen({ navigation }) {
             disabled={!hasSignature}
           >
             <Text style={styles.continueButtonText}>
-              Taahhüt Ediyorum
+              {t(language, 'iCommit')}
             </Text>
           </TouchableOpacity>
         </View>

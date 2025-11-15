@@ -8,8 +8,11 @@ import {
   Switch,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useLanguage } from '../context/LanguageContext';
+import { t } from '../locales/translations';
 
 export default function NotificationSettingsScreen({ navigation }) {
+  const { language } = useLanguage();
   const [pushEnabled, setPushEnabled] = useState(true);
   const [emailEnabled, setEmailEnabled] = useState(true);
   const [eventReminders, setEventReminders] = useState(true);
@@ -30,7 +33,7 @@ export default function NotificationSettingsScreen({ navigation }) {
         >
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Bildirim Ayarları</Text>
+        <Text style={styles.headerTitle}>{t(language, 'notificationSettings')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -40,14 +43,14 @@ export default function NotificationSettingsScreen({ navigation }) {
       >
         {/* General Notifications */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>GENEL BİLDİRİMLER</Text>
+          <Text style={styles.sectionTitle}>{t(language, 'generalNotifications')}</Text>
           
           <View style={styles.settingCard}>
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingTitle}>Push Bildirimleri</Text>
+                <Text style={styles.settingTitle}>{t(language, 'pushNotifications')}</Text>
                 <Text style={styles.settingDescription}>
-                  Uygulama içi anlık bildirimler
+                  {t(language, 'pushNotificationsDesc')}
                 </Text>
               </View>
               <Switch
@@ -62,9 +65,9 @@ export default function NotificationSettingsScreen({ navigation }) {
 
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingTitle}>E-posta Bildirimleri</Text>
+                <Text style={styles.settingTitle}>{t(language, 'emailNotifications')}</Text>
                 <Text style={styles.settingDescription}>
-                  E-posta ile bildirimler al
+                  {t(language, 'emailNotificationsDesc')}
                 </Text>
               </View>
               <Switch
@@ -79,14 +82,14 @@ export default function NotificationSettingsScreen({ navigation }) {
 
         {/* Event Notifications */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ETKİNLİK BİLDİRİMLERİ</Text>
+          <Text style={styles.sectionTitle}>{t(language, 'eventNotifications')}</Text>
           
           <View style={styles.settingCard}>
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingTitle}>Etkinlik Hatırlatıcıları</Text>
+                <Text style={styles.settingTitle}>{t(language, 'eventReminders')}</Text>
                 <Text style={styles.settingDescription}>
-                  Katıldığınız etkinlikler için hatırlatma
+                  {t(language, 'eventRemindersDesc')}
                 </Text>
               </View>
               <Switch
@@ -102,9 +105,9 @@ export default function NotificationSettingsScreen({ navigation }) {
 
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingTitle}>Yeni Etkinlikler</Text>
+                <Text style={styles.settingTitle}>{t(language, 'newEvents')}</Text>
                 <Text style={styles.settingDescription}>
-                  İlgi alanlarınıza uygun yeni etkinlikler
+                  {t(language, 'newEventsDesc')}
                 </Text>
               </View>
               <Switch
@@ -120,9 +123,9 @@ export default function NotificationSettingsScreen({ navigation }) {
 
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingTitle}>Etkinlik Güncellemeleri</Text>
+                <Text style={styles.settingTitle}>{t(language, 'eventUpdates')}</Text>
                 <Text style={styles.settingDescription}>
-                  Katıldığınız etkinliklerdeki değişiklikler
+                  {t(language, 'eventUpdatesDesc')}
                 </Text>
               </View>
               <Switch
@@ -138,14 +141,14 @@ export default function NotificationSettingsScreen({ navigation }) {
 
         {/* Other Notifications */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>DİĞER</Text>
+          <Text style={styles.sectionTitle}>{t(language, 'other')}</Text>
           
           <View style={styles.settingCard}>
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingTitle}>Mesajlar</Text>
+                <Text style={styles.settingTitle}>{t(language, 'messages')}</Text>
                 <Text style={styles.settingDescription}>
-                  Diğer kullanıcılardan mesajlar
+                  {t(language, 'messagesDesc')}
                 </Text>
               </View>
               <Switch
@@ -161,9 +164,9 @@ export default function NotificationSettingsScreen({ navigation }) {
 
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingTitle}>Pazarlama Bildirimleri</Text>
+                <Text style={styles.settingTitle}>{t(language, 'marketingNotifications')}</Text>
                 <Text style={styles.settingDescription}>
-                  Özel teklifler ve kampanyalar
+                  {t(language, 'marketingNotificationsDesc')}
                 </Text>
               </View>
               <Switch
@@ -181,8 +184,7 @@ export default function NotificationSettingsScreen({ navigation }) {
         <View style={styles.infoBox}>
           <Text style={styles.infoBoxIcon}>ℹ️</Text>
           <Text style={styles.infoBoxText}>
-            Bildirim ayarlarınız cihazınızda kaydedilir. 
-            Push bildirimleri kapalıysa diğer bildirim türleri de devre dışı kalacaktır.
+            {t(language, 'notificationInfo')}
           </Text>
         </View>
 
@@ -235,11 +237,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   sectionTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
-    color: '#999999',
-    marginBottom: 12,
-    letterSpacing: 0.5,
+    color: '#666666',
+    marginBottom: 16,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
   settingCard: {
     backgroundColor: '#ffffff',
@@ -250,9 +253,11 @@ const styles = StyleSheet.create({
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   settingRow: {
     flexDirection: 'row',

@@ -18,6 +18,7 @@ import {
   registerForPushNotificationsAsync, 
   savePushTokenToUser 
 } from './services/notificationService';
+import { LanguageProvider } from './context/LanguageContext';
 
 const Stack = createNativeStackNavigator();
 
@@ -153,11 +154,6 @@ export default function App() {
       );
     }
 
-    // Admin kontrolü
-    if (userData?.role === 'admin') {
-      return <Stack.Screen name="AdminPanel" component={AdminPanelScreen} />;
-    }
-
     // Onay bekliyor
     if (userData?.isPending) {
       return (
@@ -178,9 +174,13 @@ export default function App() {
       );
     }
 
-    // Aktif kullanıcı
+    // Aktif kullanıcı (Admin dahil)
     if (userData?.isActive) {
-      return <Stack.Screen name="Main" component={TabNavigator} />;
+      return (
+        <Stack.Screen name="Main">
+          {(props) => <TabNavigator {...props} isAdmin={userData?.role === 'admin'} />}
+        </Stack.Screen>
+      );
     }
 
     // Varsayılan: Pending
@@ -193,16 +193,18 @@ export default function App() {
   };
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{
-          headerShown: false,
-          animation: 'slide_from_right',
-        }}
-      >
-        {getScreens()}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <LanguageProvider>
+      <NavigationContainer>
+        <Stack.Navigator
+          screenOptions={{
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        >
+          {getScreens()}
+        </Stack.Navigator>
+      </NavigationContainer>
+    </LanguageProvider>
   );
 }
 

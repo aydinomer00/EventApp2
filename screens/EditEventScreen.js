@@ -12,9 +12,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { useLanguage } from '../context/LanguageContext';
+import { t } from '../locales/translations';
 import {
   sendEventCancellationNotification,
   sendEventUpdateNotification,
@@ -22,7 +25,44 @@ import {
   scheduleEventReminders,
 } from '../services/notificationService';
 
+// Kategoriler
+const CATEGORIES_TR = [
+  { name: 'Kahve & Sohbet', icon: '☕', color: '#6F4E37' },
+  { name: 'Yemek', icon: '🍽️', color: '#FF6B6B' },
+  { name: 'Spor', icon: '⚽', color: '#4ECDC4' },
+  { name: 'Gezi', icon: '🗺️', color: '#45B7D1' },
+  { name: 'Sanat & Kültür', icon: '🎨', color: '#A569BD' },
+  { name: 'Oyun', icon: '🎮', color: '#5DADE2' },
+  { name: 'Parti', icon: '🎉', color: '#F39C12' },
+  { name: 'Okey101', icon: '🎲', color: '#E74C3C' },
+  { name: 'Masa Oyunları', icon: '♟️', color: '#34495E' },
+  { name: 'Konser & Müzik', icon: '🎵', color: '#E91E63' },
+  { name: 'Sinema', icon: '🎬', color: '#9C27B0' },
+  { name: 'Kitap Kulübü', icon: '📚', color: '#3F51B5' },
+  { name: 'Doğa & Kamp', icon: '🏕️', color: '#4CAF50' },
+  { name: 'Yoga & Meditasyon', icon: '🧘', color: '#00BCD4' },
+];
+
+const CATEGORIES_EN = [
+  { name: 'Coffee & Chat', icon: '☕', color: '#6F4E37' },
+  { name: 'Food', icon: '🍽️', color: '#FF6B6B' },
+  { name: 'Sports', icon: '⚽', color: '#4ECDC4' },
+  { name: 'Travel', icon: '🗺️', color: '#45B7D1' },
+  { name: 'Art & Culture', icon: '🎨', color: '#A569BD' },
+  { name: 'Gaming', icon: '🎮', color: '#5DADE2' },
+  { name: 'Party', icon: '🎉', color: '#F39C12' },
+  { name: 'Okey101', icon: '🎲', color: '#E74C3C' },
+  { name: 'Board Games', icon: '♟️', color: '#34495E' },
+  { name: 'Concert & Music', icon: '🎵', color: '#E91E63' },
+  { name: 'Cinema', icon: '🎬', color: '#9C27B0' },
+  { name: 'Book Club', icon: '📚', color: '#3F51B5' },
+  { name: 'Nature & Camping', icon: '🏕️', color: '#4CAF50' },
+  { name: 'Yoga & Meditation', icon: '🧘', color: '#00BCD4' },
+];
+
 export default function EditEventScreen({ route, navigation }) {
+  const { language } = useLanguage();
+  const CATEGORIES = language === 'tr' ? CATEGORIES_TR : CATEGORIES_EN;
   const { eventId } = route.params;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -38,12 +78,27 @@ export default function EditEventScreen({ route, navigation }) {
   const [address, setAddress] = useState('');
   const [category, setCategory] = useState('');
   const [capacity, setCapacity] = useState('');
-  const [participantFilter, setParticipantFilter] = useState('Herkes');
-  const [ageRange, setAgeRange] = useState('Tüm Yaşlar');
+  const [participantFilter, setParticipantFilter] = useState(language === 'tr' ? 'Herkes' : 'Everyone');
+  const [ageRange, setAgeRange] = useState(language === 'tr' ? 'Tüm Yaşlar' : 'All Ages');
 
   useEffect(() => {
     loadEvent();
   }, [eventId]);
+
+  // Dil değiştiğinde filtre seçeneklerini güncelle
+  useEffect(() => {
+    if (participantFilter === 'Herkes' || participantFilter === 'Everyone') {
+      setParticipantFilter(language === 'tr' ? 'Herkes' : 'Everyone');
+    } else if (participantFilter === 'Sadece Kadınlar' || participantFilter === 'Women Only') {
+      setParticipantFilter(language === 'tr' ? 'Sadece Kadınlar' : 'Women Only');
+    } else if (participantFilter === 'Sadece Erkekler' || participantFilter === 'Men Only') {
+      setParticipantFilter(language === 'tr' ? 'Sadece Erkekler' : 'Men Only');
+    }
+    
+    if (ageRange === 'Tüm Yaşlar' || ageRange === 'All Ages') {
+      setAgeRange(language === 'tr' ? 'Tüm Yaşlar' : 'All Ages');
+    }
+  }, [language]);
 
   const loadEvent = async () => {
     try {
@@ -57,17 +112,58 @@ export default function EditEventScreen({ route, navigation }) {
         setEventTime(date);
         setLocation(data.location);
         setAddress(data.address);
-        setCategory(data.category);
+        
+        // Kategori çevirisi: Eğer kategori mevcut dildeki listede yoksa, çevir
+        let loadedCategory = data.category;
+        const categoryInCurrentLang = CATEGORIES.find(cat => cat.name === loadedCategory);
+        if (!categoryInCurrentLang) {
+          // Kategori farklı dilde kaydedilmiş, çeviri yap
+          const allCategories = [...CATEGORIES_TR, ...CATEGORIES_EN];
+          const categoryIndex = allCategories.findIndex(cat => cat.name === loadedCategory);
+          if (categoryIndex !== -1) {
+            // Aynı index'teki kategoriyi mevcut dilde bul
+            const targetIndex = categoryIndex < CATEGORIES_TR.length 
+              ? categoryIndex 
+              : categoryIndex - CATEGORIES_TR.length;
+            loadedCategory = CATEGORIES[targetIndex]?.name || loadedCategory;
+          }
+        }
+        setCategory(loadedCategory);
+        
         setCapacity(data.capacity.toString());
-        setParticipantFilter(data.participantFilter || 'Herkes');
-        setAgeRange(data.ageRange || 'Tüm Yaşlar');
+        
+        // Participant filter çevirisi
+        let loadedFilter = data.participantFilter;
+        if (loadedFilter) {
+          if (language === 'tr' && (loadedFilter === 'Everyone' || loadedFilter === 'Women Only' || loadedFilter === 'Men Only')) {
+            loadedFilter = loadedFilter === 'Everyone' ? 'Herkes' : loadedFilter === 'Women Only' ? 'Sadece Kadınlar' : 'Sadece Erkekler';
+          } else if (language === 'en' && (loadedFilter === 'Herkes' || loadedFilter === 'Sadece Kadınlar' || loadedFilter === 'Sadece Erkekler')) {
+            loadedFilter = loadedFilter === 'Herkes' ? 'Everyone' : loadedFilter === 'Sadece Kadınlar' ? 'Women Only' : 'Men Only';
+          }
+        } else {
+          loadedFilter = language === 'tr' ? 'Herkes' : 'Everyone';
+        }
+        setParticipantFilter(loadedFilter);
+        
+        // Age range çevirisi
+        let loadedAgeRange = data.ageRange;
+        if (loadedAgeRange) {
+          if (language === 'tr' && loadedAgeRange === 'All Ages') {
+            loadedAgeRange = 'Tüm Yaşlar';
+          } else if (language === 'en' && loadedAgeRange === 'Tüm Yaşlar') {
+            loadedAgeRange = 'All Ages';
+          }
+        } else {
+          loadedAgeRange = language === 'tr' ? 'Tüm Yaşlar' : 'All Ages';
+        }
+        setAgeRange(loadedAgeRange);
       } else {
-        Alert.alert('Hata', 'Etkinlik bulunamadı');
+        Alert.alert(t(language, 'error'), t(language, 'eventNotFound'));
         navigation.goBack();
       }
     } catch (error) {
       console.error('Etkinlik yükleme hatası:', error);
-      Alert.alert('Hata', 'Etkinlik yüklenirken bir hata oluştu');
+      Alert.alert(t(language, 'error'), t(language, 'eventLoadError'));
     } finally {
       setLoading(false);
     }
@@ -75,7 +171,7 @@ export default function EditEventScreen({ route, navigation }) {
 
   const handleSave = async () => {
     if (!eventName || !description || !location || !address || !category || !capacity) {
-      Alert.alert('Hata', 'Lütfen tüm alanları doldurun');
+      Alert.alert(t(language, 'error'), t(language, 'fillAllFields'));
       return;
     }
 
@@ -86,10 +182,12 @@ export default function EditEventScreen({ route, navigation }) {
       combinedDateTime.setHours(eventTime.getHours());
       combinedDateTime.setMinutes(eventTime.getMinutes());
 
-      // Eski tarih bilgisini al
+      // Eski etkinlik bilgilerini al
       const oldEventDoc = await getDoc(doc(db, 'events', eventId));
-      const oldDate = oldEventDoc.data().date;
-      const oldLocation = oldEventDoc.data().location;
+      const oldEventData = oldEventDoc.data();
+      const oldDate = oldEventData.date;
+      const oldLocation = oldEventData.location;
+      const participants = oldEventData.participants || [];
       
       await updateDoc(doc(db, 'events', eventId), {
         eventName: eventName,
@@ -110,24 +208,24 @@ export default function EditEventScreen({ route, navigation }) {
         // Yeni tarih için bildirimleri planla
         await scheduleEventReminders(eventId, eventName, combinedDateTime.toISOString());
         // Katılımcılara bildirim gönder
-        await sendEventUpdateNotification(eventName, 'date_changed');
+        await sendEventUpdateNotification(eventId, eventName, participants, 'date_changed', language);
       } 
       // Konum değiştiyse
       else if (oldLocation !== location) {
-        await sendEventUpdateNotification(eventName, 'location_changed');
+        await sendEventUpdateNotification(eventId, eventName, participants, 'location_changed', language);
       } 
       // Diğer değişiklikler
       else {
-        await sendEventUpdateNotification(eventName, 'updated');
+        await sendEventUpdateNotification(eventId, eventName, participants, 'updated', language);
       }
 
       setSaving(false);
       Alert.alert(
-        'Başarılı! 🎉',
-        'Etkinlik güncellendi ve katılımcılara bildirim gönderildi.',
+        t(language, 'updateSuccess'),
+        t(language, 'updateSuccessMessage'),
         [
           {
-            text: 'Tamam',
+            text: t(language, 'ok'),
             onPress: () => navigation.goBack()
           }
         ]
@@ -135,38 +233,43 @@ export default function EditEventScreen({ route, navigation }) {
     } catch (error) {
       console.error('Güncelleme hatası:', error);
       setSaving(false);
-      Alert.alert('Hata', 'Etkinlik güncellenirken bir hata oluştu');
+      Alert.alert(t(language, 'error'), t(language, 'updateError'));
     }
   };
 
   const handleDelete = () => {
     Alert.alert(
-      'Etkinliği Sil',
-      'Bu etkinliği silmek istediğinize emin misiniz? Bu işlem geri alınamaz.',
+      t(language, 'deleteEvent'),
+      t(language, 'deleteEventConfirm'),
       [
         {
-          text: 'İptal',
+          text: t(language, 'cancel'),
           style: 'cancel',
         },
         {
-          text: 'Sil',
+          text: t(language, 'delete'),
           style: 'destructive',
           onPress: async () => {
             try {
-              // İptal bildirimi gönder
-              await sendEventCancellationNotification(eventName);
+              // Etkinlik bilgilerini al (bildirim için)
+              const eventDoc = await getDoc(doc(db, 'events', eventId));
+              const eventData = eventDoc.data();
+              const participants = eventData?.participants || [];
               
               // Planlanmış bildirimleri iptal et
               await cancelEventNotifications(eventId);
               
+              // İptal bildirimi gönder (tüm katılımcılara)
+              await sendEventCancellationNotification(eventId, eventName, participants, language);
+              
               // Etkinliği sil
               await deleteDoc(doc(db, 'events', eventId));
               
-              Alert.alert('Başarılı', 'Etkinlik silindi ve katılımcılara bildirim gönderildi.');
+              Alert.alert(t(language, 'success'), t(language, 'deleteEventSuccess'));
               navigation.navigate('HomeScreen');
             } catch (error) {
               console.error('Silme hatası:', error);
-              Alert.alert('Hata', 'Etkinlik silinirken bir hata oluştu');
+              Alert.alert(t(language, 'error'), t(language, 'deleteEventError'));
             }
           },
         },
@@ -224,12 +327,13 @@ export default function EditEventScreen({ route, navigation }) {
         >
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Etkinliği Düzenle</Text>
+        <Text style={styles.headerTitle}>{t(language, 'editEvent')}</Text>
         <TouchableOpacity 
           style={styles.deleteButton}
           onPress={handleDelete}
+          activeOpacity={0.7}
         >
-          <Text style={styles.deleteButtonText}>🗑️</Text>
+          <Ionicons name="trash-outline" size={22} color="#FF3B30" />
         </TouchableOpacity>
       </View>
 
@@ -241,10 +345,10 @@ export default function EditEventScreen({ route, navigation }) {
       >
         {/* Etkinlik Adı */}
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Etkinlik Adı</Text>
+          <Text style={styles.label}>{t(language, 'eventNameLabel')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="Örn: Yaz Konseri"
+            placeholder={t(language, 'eventNamePlaceholder')}
             placeholderTextColor="#666666"
             value={eventName}
             onChangeText={setEventName}
@@ -254,10 +358,10 @@ export default function EditEventScreen({ route, navigation }) {
 
         {/* Açıklama */}
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Açıklama</Text>
+          <Text style={styles.label}>{t(language, 'descriptionLabel')}</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
-            placeholder="Etkinlik hakkında bilgi verin..."
+            placeholder={t(language, 'descriptionPlaceholder')}
             placeholderTextColor="#666666"
             value={description}
             onChangeText={setDescription}
@@ -269,12 +373,15 @@ export default function EditEventScreen({ route, navigation }) {
 
         {/* Tarih */}
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Tarih</Text>
+          <Text style={styles.label}>{t(language, 'dateLabel')}</Text>
           <TouchableOpacity
             style={styles.datePickerButton}
             onPress={() => setShowDatePicker(true)}
           >
-            <Text style={styles.datePickerText}>📅  {formatDate(eventDate)}</Text>
+            <View style={styles.datePickerContent}>
+              <Ionicons name="calendar-outline" size={20} color="#000000" />
+              <Text style={styles.datePickerText}>{formatDate(eventDate)}</Text>
+            </View>
           </TouchableOpacity>
           {showDatePicker && (
             <DateTimePicker
@@ -289,12 +396,15 @@ export default function EditEventScreen({ route, navigation }) {
 
         {/* Saat */}
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Saat</Text>
+          <Text style={styles.label}>{t(language, 'timeLabel')}</Text>
           <TouchableOpacity
             style={styles.datePickerButton}
             onPress={() => setShowTimePicker(true)}
           >
-            <Text style={styles.datePickerText}>🕐  {formatTime(eventTime)}</Text>
+            <View style={styles.datePickerContent}>
+              <Ionicons name="time-outline" size={20} color="#000000" />
+              <Text style={styles.datePickerText}>{formatTime(eventTime)}</Text>
+            </View>
           </TouchableOpacity>
           {showTimePicker && (
             <DateTimePicker
@@ -308,10 +418,10 @@ export default function EditEventScreen({ route, navigation }) {
 
         {/* Mekan */}
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Mekan</Text>
+          <Text style={styles.label}>{t(language, 'venueLabel')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="Örn: Açıkhava Tiyatrosu"
+            placeholder={t(language, 'venuePlaceholder')}
             placeholderTextColor="#666666"
             value={location}
             onChangeText={setLocation}
@@ -320,10 +430,10 @@ export default function EditEventScreen({ route, navigation }) {
 
         {/* Adres */}
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Adres</Text>
+          <Text style={styles.label}>{t(language, 'addressLabel')}</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
-            placeholder="Tam adres bilgisi..."
+            placeholder={t(language, 'addressPlaceholderEdit')}
             placeholderTextColor="#666666"
             value={address}
             onChangeText={setAddress}
@@ -335,24 +445,25 @@ export default function EditEventScreen({ route, navigation }) {
 
         {/* Kategori */}
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Kategori</Text>
+          <Text style={styles.label}>{t(language, 'categoryLabel')}</Text>
           <View style={styles.categoryContainer}>
-            {['Kahve & Sohbet', 'Yemek', 'Spor', 'Gezi', 'Sanat & Kültür', 'Oyun', 'Parti'].map((cat) => (
+            {CATEGORIES.map((cat) => (
               <TouchableOpacity
-                key={cat}
+                key={cat.name}
                 style={[
                   styles.categoryChip,
-                  category === cat && styles.categoryChipActive,
+                  category === cat.name && styles.categoryChipActive,
                 ]}
-                onPress={() => setCategory(cat)}
+                onPress={() => setCategory(cat.name)}
               >
+                <Text style={styles.categoryEmoji}>{cat.icon}</Text>
                 <Text
                   style={[
                     styles.categoryChipText,
-                    category === cat && styles.categoryChipTextActive,
+                    category === cat.name && styles.categoryChipTextActive,
                   ]}
                 >
-                  {cat}
+                  {cat.name}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -361,9 +472,12 @@ export default function EditEventScreen({ route, navigation }) {
 
         {/* Katılımcı Filtresi */}
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Kimler Katılabilir?</Text>
+          <Text style={styles.label}>{t(language, 'whoCanJoinLabel')}</Text>
           <View style={styles.categoryContainer}>
-            {['Herkes', 'Sadece Kadınlar', 'Sadece Erkekler'].map((filter) => (
+            {(language === 'tr' 
+              ? ['Herkes', 'Sadece Kadınlar', 'Sadece Erkekler']
+              : ['Everyone', 'Women Only', 'Men Only']
+            ).map((filter) => (
               <TouchableOpacity
                 key={filter}
                 style={[
@@ -372,14 +486,37 @@ export default function EditEventScreen({ route, navigation }) {
                 ]}
                 onPress={() => setParticipantFilter(filter)}
               >
-                <Text
-                  style={[
-                    styles.categoryChipText,
-                    participantFilter === filter && styles.categoryChipTextActive,
-                  ]}
-                >
-                  {filter}
-                </Text>
+                <View style={styles.filterButtonContent}>
+                  {(filter === 'Herkes' || filter === 'Everyone') && (
+                    <Ionicons 
+                      name="globe-outline" 
+                      size={16} 
+                      color={participantFilter === filter ? '#FFFFFF' : '#666666'} 
+                    />
+                  )}
+                  {(filter === 'Sadece Kadınlar' || filter === 'Women Only') && (
+                    <Ionicons 
+                      name="woman-outline" 
+                      size={16} 
+                      color={participantFilter === filter ? '#FFFFFF' : '#666666'} 
+                    />
+                  )}
+                  {(filter === 'Sadece Erkekler' || filter === 'Men Only') && (
+                    <Ionicons 
+                      name="man-outline" 
+                      size={16} 
+                      color={participantFilter === filter ? '#FFFFFF' : '#666666'} 
+                    />
+                  )}
+                  <Text
+                    style={[
+                      styles.categoryChipText,
+                      participantFilter === filter && styles.categoryChipTextActive,
+                    ]}
+                  >
+                    {filter}
+                  </Text>
+                </View>
               </TouchableOpacity>
             ))}
           </View>
@@ -387,9 +524,12 @@ export default function EditEventScreen({ route, navigation }) {
 
         {/* Yaş Aralığı */}
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Yaş Aralığı</Text>
+          <Text style={styles.label}>{t(language, 'ageRangeLabel')}</Text>
           <View style={styles.categoryContainer}>
-            {['Tüm Yaşlar', '18-25', '26-35', '36-45', '46+'].map((age) => (
+            {(language === 'tr' 
+              ? ['Tüm Yaşlar', '18-25', '26-35', '36-45', '46+']
+              : ['All Ages', '18-25', '26-35', '36-45', '46+']
+            ).map((age) => (
               <TouchableOpacity
                 key={age}
                 style={[
@@ -413,10 +553,10 @@ export default function EditEventScreen({ route, navigation }) {
 
         {/* Kapasite */}
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Kapasite</Text>
+          <Text style={styles.label}>{t(language, 'capacityLabel')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="Maksimum katılımcı sayısı"
+            placeholder={t(language, 'capacityPlaceholder')}
             placeholderTextColor="#666666"
             value={capacity}
             onChangeText={setCapacity}
@@ -433,7 +573,7 @@ export default function EditEventScreen({ route, navigation }) {
           {saving ? (
             <ActivityIndicator color="#ffffff" />
           ) : (
-            <Text style={styles.saveButtonText}>Değişiklikleri Kaydet</Text>
+            <Text style={styles.saveButtonText}>{t(language, 'saveChanges')}</Text>
           )}
         </TouchableOpacity>
 
@@ -484,11 +624,10 @@ const styles = StyleSheet.create({
   deleteButton: {
     width: 40,
     height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFE5E5',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  deleteButtonText: {
-    fontSize: 24,
   },
   scrollView: {
     flex: 1,
@@ -542,6 +681,11 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
   },
+  datePickerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   datePickerText: {
     fontSize: 16,
     color: '#000000',
@@ -559,6 +703,9 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     paddingHorizontal: 20,
     paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   categoryChipActive: {
     backgroundColor: '#000000',
@@ -571,6 +718,14 @@ const styles = StyleSheet.create({
   },
   categoryChipTextActive: {
     color: '#ffffff',
+  },
+  categoryEmoji: {
+    fontSize: 16,
+  },
+  filterButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   saveButton: {
     backgroundColor: '#000000',

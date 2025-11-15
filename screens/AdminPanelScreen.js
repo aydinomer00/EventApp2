@@ -10,12 +10,16 @@ import {
   Linking,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { db, auth } from '../config/firebase';
 import { sendAdminApprovalNotification } from '../services/notificationService';
+import { useLanguage } from '../context/LanguageContext';
+import { t } from '../locales/translations';
 
 export default function AdminPanelScreen() {
+  const { language } = useLanguage();
   const [pendingUsers, setPendingUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -41,7 +45,7 @@ export default function AdminPanelScreen() {
       setPendingUsers(users);
     } catch (error) {
       console.error('Kullanıcılar yüklenirken hata:', error);
-      Alert.alert('Hata', 'Kullanıcılar yüklenirken bir hata oluştu');
+      Alert.alert(t(language, 'error'), t(language, 'loadingUsers'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -55,15 +59,15 @@ export default function AdminPanelScreen() {
 
   const handleApprove = async (userId, userName) => {
     Alert.alert(
-      'Kullanıcıyı Onayla',
-      `${userName} adlı kullanıcıyı onaylamak istediğinize emin misiniz?`,
+      t(language, 'approveUser'),
+      `${userName} ${t(language, 'approveUserConfirm')}`,
       [
         {
-          text: 'İptal',
+          text: t(language, 'cancel'),
           style: 'cancel',
         },
         {
-          text: 'Onayla',
+          text: t(language, 'approve'),
           onPress: async () => {
             try {
               await updateDoc(doc(db, 'users', userId), {
@@ -72,14 +76,14 @@ export default function AdminPanelScreen() {
                 approvedAt: new Date().toISOString(),
               });
               
-              // Onay bildirimi gönder
-              await sendAdminApprovalNotification(true);
+              // Onay bildirimi gönder (onaylanan kullanıcıya)
+              await sendAdminApprovalNotification(userId, true, language);
               
-              Alert.alert('Başarılı', 'Kullanıcı onaylandı! Bildirim gönderildi.');
+              Alert.alert(t(language, 'success'), t(language, 'userApproved'));
               loadPendingUsers();
             } catch (error) {
               console.error('Onaylama hatası:', error);
-              Alert.alert('Hata', 'Kullanıcı onaylanırken bir hata oluştu');
+              Alert.alert(t(language, 'error'), t(language, 'approvalError'));
             }
           },
         },
@@ -89,15 +93,15 @@ export default function AdminPanelScreen() {
 
   const handleReject = async (userId, userName) => {
     Alert.alert(
-      'Kullanıcıyı Reddet',
-      `${userName} adlı kullanıcıyı reddetmek istediğinize emin misiniz?`,
+      t(language, 'rejectUser'),
+      `${userName} ${t(language, 'rejectUserConfirm')}`,
       [
         {
-          text: 'İptal',
+          text: t(language, 'cancel'),
           style: 'cancel',
         },
         {
-          text: 'Reddet',
+          text: t(language, 'reject'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -108,14 +112,14 @@ export default function AdminPanelScreen() {
                 rejectedAt: new Date().toISOString(),
               });
               
-              // Reddetme bildirimi gönder
-              await sendAdminApprovalNotification(false);
+              // Reddetme bildirimi gönder (reddedilen kullanıcıya)
+              await sendAdminApprovalNotification(userId, false, language);
               
-              Alert.alert('Başarılı', 'Kullanıcı reddedildi. Bildirim gönderildi.');
+              Alert.alert(t(language, 'success'), t(language, 'userRejected'));
               loadPendingUsers();
             } catch (error) {
               console.error('Reddetme hatası:', error);
-              Alert.alert('Hata', 'Kullanıcı reddedilirken bir hata oluştu');
+              Alert.alert(t(language, 'error'), t(language, 'rejectionError'));
             }
           },
         },
@@ -130,15 +134,15 @@ export default function AdminPanelScreen() {
 
   const handleLogout = () => {
     Alert.alert(
-      'Çıkış Yap',
-      'Admin panelinden çıkış yapmak istediğinize emin misiniz?',
+      t(language, 'logout'),
+      t(language, 'logoutConfirm'),
       [
         {
-          text: 'İptal',
+          text: t(language, 'cancel'),
           style: 'cancel',
         },
         {
-          text: 'Çıkış Yap',
+          text: t(language, 'logout'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -146,7 +150,7 @@ export default function AdminPanelScreen() {
               console.log('Admin çıkış yaptı');
             } catch (error) {
               console.error('Çıkış hatası:', error);
-              Alert.alert('Hata', 'Çıkış yapılırken bir hata oluştu');
+              Alert.alert(t(language, 'error'), t(language, 'logoutError'));
             }
           },
         },
@@ -165,40 +169,44 @@ export default function AdminPanelScreen() {
             </Text>
           </View>
           <View style={styles.pendingBadge}>
-            <Text style={styles.pendingBadgeText}>Bekliyor</Text>
+            <Ionicons name="time-outline" size={10} color="#856404" style={styles.badgeIcon} />
+            <Text style={styles.pendingBadgeText}>{t(language, 'waitingApproval')}</Text>
           </View>
         </View>
         <View style={styles.userInfo}>
           <Text style={styles.userName}>{user.name}</Text>
           <Text style={styles.userEmail}>{user.email}</Text>
-          <Text style={styles.userDate}>
-            📅 {new Date(user.createdAt).toLocaleDateString('tr-TR')}
-          </Text>
+          <View style={styles.userDateRow}>
+            <Ionicons name="calendar-outline" size={14} color="#999999" />
+            <Text style={styles.userDate}>
+              {new Date(user.createdAt).toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US')}
+            </Text>
+          </View>
         </View>
       </View>
 
       {/* Detaylar */}
       <View style={styles.userDetails}>
         <View style={styles.detailCard}>
-          <Text style={styles.detailIcon}>👤</Text>
+          <Ionicons name={user.gender === 'Kadın' || user.gender === 'Woman' ? 'woman-outline' : 'man-outline'} size={24} color="#000000" />
           <View style={styles.detailContent}>
-            <Text style={styles.detailLabel}>Cinsiyet</Text>
+            <Text style={styles.detailLabel}>{t(language, 'gender')}</Text>
             <Text style={styles.detailValue}>{user.gender}</Text>
           </View>
         </View>
 
         <View style={styles.detailCard}>
-          <Text style={styles.detailIcon}>🎂</Text>
+          <Ionicons name="gift-outline" size={24} color="#000000" />
           <View style={styles.detailContent}>
-            <Text style={styles.detailLabel}>Doğum Yılı</Text>
+            <Text style={styles.detailLabel}>{t(language, 'birthYear')}</Text>
             <Text style={styles.detailValue}>{user.birthYear}</Text>
           </View>
         </View>
 
         <View style={styles.detailCard}>
-          <Text style={styles.detailIcon}>📍</Text>
+          <Ionicons name="location-outline" size={24} color="#000000" />
           <View style={styles.detailContent}>
-            <Text style={styles.detailLabel}>Şehir</Text>
+            <Text style={styles.detailLabel}>{t(language, 'city')}</Text>
             <Text style={styles.detailValue}>{user.city}</Text>
           </View>
         </View>
@@ -207,12 +215,12 @@ export default function AdminPanelScreen() {
           style={styles.instagramCard}
           onPress={() => handleOpenInstagram(user.instagram)}
         >
-          <Text style={styles.detailIcon}>📸</Text>
+          <Ionicons name="logo-instagram" size={24} color="#E1306C" />
           <View style={styles.detailContent}>
             <Text style={styles.detailLabel}>Instagram</Text>
             <Text style={styles.instagramLink}>{user.instagram}</Text>
           </View>
-          <Text style={styles.openIcon}>›</Text>
+          <Ionicons name="chevron-forward" size={20} color="#CCCCCC" />
         </TouchableOpacity>
       </View>
 
@@ -222,13 +230,15 @@ export default function AdminPanelScreen() {
           style={styles.rejectButton}
           onPress={() => handleReject(user.id, user.name)}
         >
-          <Text style={styles.rejectButtonText}>❌ Reddet</Text>
+          <Ionicons name="close-circle" size={20} color="#FFFFFF" style={styles.buttonIcon} />
+          <Text style={styles.rejectButtonText}>{t(language, 'reject')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.approveButton}
           onPress={() => handleApprove(user.id, user.name)}
         >
-          <Text style={styles.approveButtonText}>✅ Onayla</Text>
+          <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" style={styles.buttonIcon} />
+          <Text style={styles.approveButtonText}>{t(language, 'approve')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -237,34 +247,35 @@ export default function AdminPanelScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007bff" />
-        <Text style={styles.loadingText}>Yükleniyor...</Text>
+        <ActivityIndicator size="large" color="#000000" />
+        <Text style={styles.loadingText}>{t(language, 'loading')}</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View style={styles.adminBadge}>
-            <Text style={styles.adminIcon}>👑</Text>
+            <Ionicons name="shield-checkmark" size={20} color="#FFFFFF" />
+            <Text style={styles.adminText}>Admin</Text>
           </View>
           <TouchableOpacity 
             style={styles.logoutButton} 
             onPress={handleLogout}
           >
-            <Text style={styles.logoutIcon}>🚪</Text>
+            <Ionicons name="log-out-outline" size={24} color="#000000" />
           </TouchableOpacity>
         </View>
         
-        <Text style={styles.headerTitle}>Admin Panel</Text>
+          <Text style={styles.headerTitle}>{t(language, 'adminPanel')}</Text>
         <Text style={styles.headerSubtitle}>
           {pendingUsers.length > 0 
-            ? `${pendingUsers.length} kullanıcı onay bekliyor`
-            : 'Tüm kullanıcılar onaylandı'
+            ? `${pendingUsers.length} ${t(language, 'usersWaitingApproval')}`
+            : t(language, 'allUsersApproved')
           }
         </Text>
       </View>
@@ -276,10 +287,12 @@ export default function AdminPanelScreen() {
         <View style={styles.content}>
           {pendingUsers.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>✅</Text>
-              <Text style={styles.emptyTitle}>Bekleyen Kullanıcı Yok</Text>
+              <View style={styles.emptyIconContainer}>
+                <Ionicons name="checkmark-done-circle" size={72} color="#4CAF50" />
+              </View>
+              <Text style={styles.emptyTitle}>{t(language, 'noPendingUsers')}</Text>
               <Text style={styles.emptyText}>
-                Tüm kayıtlar incelendi
+                {t(language, 'allRegistrationsReviewed')}
               </Text>
             </View>
           ) : (
@@ -293,9 +306,12 @@ export default function AdminPanelScreen() {
           disabled={refreshing}
         >
           {refreshing ? (
-            <ActivityIndicator color="#007bff" />
+            <ActivityIndicator color="#000000" />
           ) : (
-            <Text style={styles.refreshButtonText}>🔄 Yenile</Text>
+            <>
+              <Ionicons name="refresh" size={20} color="#000000" style={styles.refreshIcon} />
+              <Text style={styles.refreshButtonText}>{t(language, 'refresh')}</Text>
+            </>
           )}
         </TouchableOpacity>
 
@@ -308,24 +324,26 @@ export default function AdminPanelScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f5f5f5',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f5f5f5',
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#6c757d',
+    color: '#666666',
   },
   header: {
-    backgroundColor: '#6f42c1',
+    backgroundColor: '#FFFFFF',
     padding: 24,
     paddingTop: 60,
     paddingBottom: 28,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
   },
   headerTop: {
     flexDirection: 'row',
@@ -334,36 +352,37 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   adminBadge: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: '#000000',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
-  adminIcon: {
-    fontSize: 20,
+  adminText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
   logoutButton: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: '#F5F5F5',
     width: 44,
     height: 44,
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logoutIcon: {
-    fontSize: 24,
-  },
   headerTitle: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: '#000000',
     marginBottom: 6,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: 'rgba(255,255,255,0.9)',
+    color: '#666666',
+    fontWeight: '500',
   },
   scrollView: {
     flex: 1,
@@ -376,14 +395,14 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     marginBottom: 16,
-    shadowColor: '#6f42c1',
+    shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 2,
     },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 5,
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
   },
   userHeader: {
     flexDirection: 'row',
@@ -398,7 +417,7 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: '#6f42c1',
+    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -411,12 +430,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: -4,
     right: -4,
-    backgroundColor: '#ffc107',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFC107',
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: 10,
     borderWidth: 2,
     borderColor: '#ffffff',
+    gap: 3,
+  },
+  badgeIcon: {
+    marginRight: 0,
   },
   pendingBadgeText: {
     fontSize: 10,
@@ -435,12 +460,17 @@ const styles = StyleSheet.create({
   },
   userEmail: {
     fontSize: 14,
-    color: '#6c757d',
-    marginBottom: 6,
+    color: '#666666',
+    marginBottom: 8,
+  },
+  userDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   userDate: {
     fontSize: 13,
-    color: '#adb5bd',
+    color: '#999999',
   },
   userDetails: {
     marginBottom: 20,
@@ -449,22 +479,20 @@ const styles = StyleSheet.create({
   detailCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F5F5F5',
     padding: 14,
     borderRadius: 12,
+    gap: 12,
   },
   instagramCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f0f8ff',
+    backgroundColor: '#FFF5F7',
     padding: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e3f2fd',
-  },
-  detailIcon: {
-    fontSize: 24,
-    marginRight: 12,
+    borderColor: '#FFE0E6',
+    gap: 12,
   },
   detailContent: {
     flex: 1,
@@ -482,13 +510,8 @@ const styles = StyleSheet.create({
   },
   instagramLink: {
     fontSize: 15,
-    color: '#007bff',
+    color: '#E1306C',
     fontWeight: '700',
-  },
-  openIcon: {
-    fontSize: 28,
-    color: '#adb5bd',
-    fontWeight: '300',
   },
   actionButtons: {
     flexDirection: 'row',
@@ -496,38 +519,47 @@ const styles = StyleSheet.create({
   },
   rejectButton: {
     flex: 1,
-    backgroundColor: '#dc3545',
+    flexDirection: 'row',
+    backgroundColor: '#F44336',
     borderRadius: 14,
     padding: 16,
     alignItems: 'center',
-    shadowColor: '#dc3545',
+    justifyContent: 'center',
+    gap: 8,
+    shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 3,
+      height: 2,
     },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.1,
     shadowRadius: 6,
-    elevation: 4,
+    elevation: 3,
   },
   rejectButtonText: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: 'bold',
   },
+  buttonIcon: {
+    marginRight: 0,
+  },
   approveButton: {
     flex: 1,
-    backgroundColor: '#28a745',
+    flexDirection: 'row',
+    backgroundColor: '#4CAF50',
     borderRadius: 14,
     padding: 16,
     alignItems: 'center',
-    shadowColor: '#28a745',
+    justifyContent: 'center',
+    gap: 8,
+    shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 3,
+      height: 2,
     },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.1,
     shadowRadius: 6,
-    elevation: 4,
+    elevation: 3,
   },
   approveButtonText: {
     color: '#ffffff',
@@ -537,36 +569,49 @@ const styles = StyleSheet.create({
   emptyState: {
     backgroundColor: '#ffffff',
     padding: 48,
-    borderRadius: 16,
+    borderRadius: 20,
     alignItems: 'center',
     marginTop: 40,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
   },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
+  emptyIconContainer: {
+    marginBottom: 20,
   },
   emptyTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: '#000000',
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: '#6c757d',
+    color: '#666666',
   },
   refreshButton: {
+    flexDirection: 'row',
     backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
+    justifyContent: 'center',
     marginHorizontal: 16,
     marginTop: 8,
     borderWidth: 2,
-    borderColor: '#007bff',
+    borderColor: '#000000',
+    gap: 8,
+  },
+  refreshIcon: {
+    marginRight: 0,
   },
   refreshButtonText: {
-    color: '#007bff',
+    color: '#000000',
     fontSize: 16,
     fontWeight: 'bold',
   },

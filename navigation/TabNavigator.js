@@ -3,6 +3,8 @@ import { View, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useLanguage } from '../context/LanguageContext';
+import { t } from '../locales/translations';
 import HomeScreen from '../screens/HomeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import CreateEventScreen from '../screens/CreateEventScreen';
@@ -20,6 +22,7 @@ import MessagesScreen from '../screens/MessagesScreen';
 import RateEventScreen from '../screens/RateEventScreen';
 import HelpSupportScreen from '../screens/HelpSupportScreen';
 import AboutScreen from '../screens/AboutScreen';
+import AdminPanelScreen from '../screens/AdminPanelScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -50,6 +53,8 @@ function MessagesStack() {
     >
       <Stack.Screen name="MessagesScreen" component={MessagesScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
+      <Stack.Screen name="EventDetail" component={EventDetailScreen} />
+      <Stack.Screen name="RateEvent" component={RateEventScreen} />
     </Stack.Navigator>
   );
 }
@@ -71,11 +76,29 @@ function ProfileStack() {
       <Stack.Screen name="About" component={AboutScreen} />
       <Stack.Screen name="Terms" component={TermsScreen} />
       <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+      <Stack.Screen name="EventDetail" component={EventDetailScreen} />
+      <Stack.Screen name="RateEvent" component={RateEventScreen} />
     </Stack.Navigator>
   );
 }
 
-export default function TabNavigator() {
+function AdminStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen name="AdminPanelScreen" component={AdminPanelScreen} />
+      <Stack.Screen name="EventDetail" component={EventDetailScreen} />
+      <Stack.Screen name="RateEvent" component={RateEventScreen} />
+    </Stack.Navigator>
+  );
+}
+
+export default function TabNavigator({ isAdmin = false }) {
+  const { language } = useLanguage();
+  
   return (
     <Tab.Navigator
       screenOptions={{
@@ -108,7 +131,7 @@ export default function TabNavigator() {
         name="HomePage" 
         component={HomeStack}
         options={{
-          tabBarLabel: 'Ana Sayfa',
+          tabBarLabel: t(language, 'home'),
           tabBarIcon: ({ focused }) => (
             <View style={[
               styles.iconContainer,
@@ -127,7 +150,7 @@ export default function TabNavigator() {
         name="Messages" 
         component={MessagesStack}
         options={{
-          tabBarLabel: 'Mesajlar',
+          tabBarLabel: t(language, 'messages'),
           tabBarIcon: ({ focused }) => (
             <View style={[
               styles.iconContainer,
@@ -146,7 +169,7 @@ export default function TabNavigator() {
         name="Profile" 
         component={ProfileStack}
         options={{
-          tabBarLabel: 'Profil',
+          tabBarLabel: t(language, 'profile'),
           tabBarIcon: ({ focused }) => (
             <View style={[
               styles.iconContainer,
@@ -161,6 +184,27 @@ export default function TabNavigator() {
           ),
         }}
       />
+      {isAdmin && (
+        <Tab.Screen 
+          name="Admin" 
+          component={AdminStack}
+          options={{
+            tabBarLabel: t(language, 'admin'),
+            tabBarIcon: ({ focused }) => (
+              <View style={[
+                styles.iconContainer,
+                focused && styles.iconContainerActive
+              ]}>
+                <Ionicons 
+                  name={focused ? 'shield-checkmark' : 'shield-checkmark-outline'} 
+                  size={24} 
+                  color={focused ? '#000000' : '#999999'} 
+                />
+              </View>
+            ),
+          }}
+        />
+      )}
     </Tab.Navigator>
   );
 }

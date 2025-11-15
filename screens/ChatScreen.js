@@ -26,8 +26,11 @@ import {
   deleteDoc,
 } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
+import { useLanguage } from '../context/LanguageContext';
+import { t } from '../locales/translations';
 
 export default function ChatScreen({ route, navigation }) {
+  const { language } = useLanguage();
   const { eventId, eventTitle } = route.params;
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -51,7 +54,7 @@ export default function ChatScreen({ route, navigation }) {
     try {
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       if (userDoc.exists()) {
-        setCurrentUserName(userDoc.data().name || 'Kullanıcı');
+        setCurrentUserName(userDoc.data().name || (language === 'tr' ? 'Kullanıcı' : 'User'));
       }
     } catch (error) {
       console.error('Kullanıcı adı yükleme hatası:', error);
@@ -87,7 +90,7 @@ export default function ChatScreen({ route, navigation }) {
       }, 100);
     }, (error) => {
       console.error('Mesajları yükleme hatası:', error);
-      Alert.alert('Hata', 'Mesajlar yüklenirken bir hata oluştu');
+      Alert.alert(t(language, 'error'), t(language, 'errorLoadingMessages'));
       setLoading(false);
     });
 
@@ -172,7 +175,7 @@ export default function ChatScreen({ route, navigation }) {
       }
     } catch (error) {
       console.error('Mesaj gönderme hatası:', error);
-      Alert.alert('Hata', 'Mesaj gönderilemedi');
+      Alert.alert(t(language, 'error'), t(language, 'errorSendingMessage'));
     } finally {
       setSending(false);
     }
@@ -210,19 +213,22 @@ export default function ChatScreen({ route, navigation }) {
     const date = new Date(dateString);
     const now = new Date();
     const diffInHours = (date - now) / (1000 * 60 * 60);
+    const locale = language === 'tr' ? 'tr-TR' : 'en-US';
 
     if (diffInHours < 24 && diffInHours > 0) {
-      return 'Bugün ' + date.toLocaleTimeString('tr-TR', { 
+      const todayText = language === 'tr' ? 'Bugün ' : 'Today ';
+      return todayText + date.toLocaleTimeString(locale, { 
         hour: '2-digit', 
         minute: '2-digit' 
       });
     } else if (diffInHours < 48 && diffInHours > 24) {
-      return 'Yarın ' + date.toLocaleTimeString('tr-TR', { 
+      const tomorrowText = language === 'tr' ? 'Yarın ' : 'Tomorrow ';
+      return tomorrowText + date.toLocaleTimeString(locale, { 
         hour: '2-digit', 
         minute: '2-digit' 
       });
     } else {
-      return date.toLocaleDateString('tr-TR', { 
+      return date.toLocaleDateString(locale, { 
         day: 'numeric', 
         month: 'short',
         hour: '2-digit',
@@ -237,22 +243,24 @@ export default function ChatScreen({ route, navigation }) {
     const messageDate = timestamp.toDate();
     const now = new Date();
     const diffInHours = (now - messageDate) / (1000 * 60 * 60);
+    const locale = language === 'tr' ? 'tr-TR' : 'en-US';
 
     if (diffInHours < 24) {
       // Bugün - sadece saat göster
-      return messageDate.toLocaleTimeString('tr-TR', { 
+      return messageDate.toLocaleTimeString(locale, { 
         hour: '2-digit', 
         minute: '2-digit' 
       });
     } else if (diffInHours < 48) {
       // Dün
-      return 'Dün ' + messageDate.toLocaleTimeString('tr-TR', { 
+      const yesterdayText = language === 'tr' ? 'Dün ' : 'Yesterday ';
+      return yesterdayText + messageDate.toLocaleTimeString(locale, { 
         hour: '2-digit', 
         minute: '2-digit' 
       });
     } else {
       // Tarih göster
-      return messageDate.toLocaleDateString('tr-TR', { 
+      return messageDate.toLocaleDateString(locale, { 
         day: 'numeric', 
         month: 'short',
         hour: '2-digit',
@@ -314,9 +322,9 @@ export default function ChatScreen({ route, navigation }) {
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <Ionicons name="chatbubble-ellipses-outline" size={64} color="#E0E0E0" />
-      <Text style={styles.emptyTitle}>Henüz mesaj yok</Text>
+      <Text style={styles.emptyTitle}>{t(language, 'noMessagesYet')}</Text>
       <Text style={styles.emptyText}>
-        Grup sohbetine ilk mesajı sen yaz!
+        {t(language, 'writeFirstMessage')}
       </Text>
     </View>
   );
@@ -325,7 +333,7 @@ export default function ChatScreen({ route, navigation }) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#000000" />
-        <Text style={styles.loadingText}>Sohbet yükleniyor...</Text>
+        <Text style={styles.loadingText}>{t(language, 'loadingChat')}</Text>
       </View>
     );
   }
@@ -363,7 +371,7 @@ export default function ChatScreen({ route, navigation }) {
               <View style={styles.headerSubtitleContainer}>
                 <Ionicons name="people-outline" size={12} color="#FFFFFF" />
                 <Text style={styles.headerSubtitle}>
-                  {eventData.participants?.length || 0} kişi • {formatEventDate(eventData.date)}
+                  {eventData.participants?.length || 0} {eventData.participants?.length === 1 ? t(language, 'person') : t(language, 'people')} • {formatEventDate(eventData.date)}
                 </Text>
               </View>
             </View>
@@ -399,8 +407,8 @@ export default function ChatScreen({ route, navigation }) {
               <View style={styles.typingBubble}>
                 <Text style={styles.typingText}>
                   {typingUsers.length === 1
-                    ? `${typingUsers[0].userName} yazıyor...`
-                    : `${typingUsers.length} kişi yazıyor...`}
+                    ? `${typingUsers[0].userName} ${language === 'tr' ? 'yazıyor...' : 'is typing...'}`
+                    : `${typingUsers.length} ${language === 'tr' ? 'kişi yazıyor...' : 'people typing...'}`}
                 </Text>
                 <View style={styles.typingDots}>
                   <View style={[styles.typingDot, styles.typingDot1]} />
@@ -417,7 +425,7 @@ export default function ChatScreen({ route, navigation }) {
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          placeholder="Mesajını yaz..."
+          placeholder={t(language, 'typeMessageHere')}
           placeholderTextColor="#999999"
           value={newMessage}
           onChangeText={handleTyping}

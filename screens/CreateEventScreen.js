@@ -20,9 +20,61 @@ import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
-import { pickImage, takePhoto, uploadEventImage } from '../utils/imageUpload';
+import { pickImage, takePhoto, processEventImage } from '../utils/imageUpload';
+import { useLanguage } from '../context/LanguageContext';
+import { t } from '../locales/translations';
+import { getCityNames, getDistrictsByCity } from '../data/turkeyCities';
+
+// Kategoriler ve varsayılan emoji iconları
+const CATEGORIES_TR = [
+  { name: 'Kahve & Sohbet', icon: '☕', color: '#6F4E37' },
+  { name: 'Yemek', icon: '🍽️', color: '#FF6B6B' },
+  { name: 'Spor', icon: '⚽', color: '#4ECDC4' },
+  { name: 'Gezi', icon: '🗺️', color: '#45B7D1' },
+  { name: 'Sanat & Kültür', icon: '🎨', color: '#A569BD' },
+  { name: 'Oyun', icon: '🎮', color: '#5DADE2' },
+  { name: 'Parti', icon: '🎉', color: '#F39C12' },
+  { name: 'Okey101', icon: '🎲', color: '#E74C3C' },
+  { name: 'Masa Oyunları', icon: '♟️', color: '#34495E' },
+  { name: 'Konser & Müzik', icon: '🎵', color: '#E91E63' },
+  { name: 'Sinema', icon: '🎬', color: '#9C27B0' },
+  { name: 'Kitap Kulübü', icon: '📚', color: '#3F51B5' },
+  { name: 'Doğa & Kamp', icon: '🏕️', color: '#4CAF50' },
+  { name: 'Yoga & Meditasyon', icon: '🧘', color: '#00BCD4' },
+];
+
+const CATEGORIES_EN = [
+  { name: 'Coffee & Chat', icon: '☕', color: '#6F4E37' },
+  { name: 'Food', icon: '🍽️', color: '#FF6B6B' },
+  { name: 'Sports', icon: '⚽', color: '#4ECDC4' },
+  { name: 'Travel', icon: '🗺️', color: '#45B7D1' },
+  { name: 'Art & Culture', icon: '🎨', color: '#A569BD' },
+  { name: 'Gaming', icon: '🎮', color: '#5DADE2' },
+  { name: 'Party', icon: '🎉', color: '#F39C12' },
+  { name: 'Okey101', icon: '🎲', color: '#E74C3C' },
+  { name: 'Board Games', icon: '♟️', color: '#34495E' },
+  { name: 'Concert & Music', icon: '🎵', color: '#E91E63' },
+  { name: 'Cinema', icon: '🎬', color: '#9C27B0' },
+  { name: 'Book Club', icon: '📚', color: '#3F51B5' },
+  { name: 'Nature & Camping', icon: '🏕️', color: '#4CAF50' },
+  { name: 'Yoga & Meditation', icon: '🧘', color: '#00BCD4' },
+];
+
+// Kategori için varsayılan placeholder oluştur (SVG yerine renk + emoji)
+const getCategoryPlaceholder = (categoryName, language) => {
+  const CATEGORIES = language === 'tr' ? CATEGORIES_TR : CATEGORIES_EN;
+  const category = CATEGORIES.find(cat => cat.name === categoryName);
+  if (!category) return null;
+  return {
+    isPlaceholder: true,
+    icon: category.icon,
+    color: category.color,
+  };
+};
 
 export default function CreateEventScreen({ navigation }) {
+  const { language } = useLanguage();
+  const CATEGORIES = language === 'tr' ? CATEGORIES_TR : CATEGORIES_EN;
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   
@@ -129,7 +181,7 @@ export default function CreateEventScreen({ navigation }) {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['İptal', 'Fotoğraf Çek', 'Galeriden Seç'],
+          options: [t(language, 'cancel'), t(language, 'takePhoto'), t(language, 'chooseFromGallery')],
           cancelButtonIndex: 0,
         },
         async (buttonIndex) => {
@@ -142,12 +194,12 @@ export default function CreateEventScreen({ navigation }) {
       );
     } else {
       Alert.alert(
-        'Fotoğraf Seç',
-        'Nereden fotoğraf eklemek istersiniz?',
+        t(language, 'choosePhoto'),
+        language === 'tr' ? 'Nereden fotoğraf eklemek istersiniz?' : 'Where would you like to add a photo from?',
         [
-          { text: 'İptal', style: 'cancel' },
-          { text: 'Fotoğraf Çek', onPress: handleTakePhoto },
-          { text: 'Galeriden Seç', onPress: handlePickImage },
+          { text: t(language, 'cancel'), style: 'cancel' },
+          { text: t(language, 'takePhoto'), onPress: handleTakePhoto },
+          { text: t(language, 'chooseFromGallery'), onPress: handlePickImage },
         ]
       );
     }
@@ -158,7 +210,12 @@ export default function CreateEventScreen({ navigation }) {
       setUploadingImage(true);
       const uri = await pickImage();
       if (uri) {
-        setEventImages([...eventImages, uri]);
+        console.log('📸 Galeriden fotoğraf seçildi, işleniyor...');
+        const base64String = await processEventImage(uri);
+        if (base64String) {
+          setEventImages([...eventImages, base64String]);
+          Alert.alert('Başarılı!', 'Fotoğraf eklendi ✓');
+        }
       }
     } catch (error) {
       console.error('Fotoğraf seçme hatası:', error);
@@ -173,7 +230,12 @@ export default function CreateEventScreen({ navigation }) {
       setUploadingImage(true);
       const uri = await takePhoto();
       if (uri) {
-        setEventImages([...eventImages, uri]);
+        console.log('📸 Fotoğraf çekildi, işleniyor...');
+        const base64String = await processEventImage(uri);
+        if (base64String) {
+          setEventImages([...eventImages, base64String]);
+          Alert.alert('Başarılı!', 'Fotoğraf eklendi ✓');
+        }
       }
     } catch (error) {
       console.error('Fotoğraf çekme hatası:', error);
@@ -210,7 +272,16 @@ export default function CreateEventScreen({ navigation }) {
       combinedDateTime.setHours(eventTime.getHours());
       combinedDateTime.setMinutes(eventTime.getMinutes());
 
-      // Önce etkinliği oluştur ve ID'sini al
+      // Fotoğraf yoksa kategori placeholder'ını ekle
+      let finalImages = eventImages;
+            if (finalImages.length === 0) {
+              const placeholder = getCategoryPlaceholder(category, language);
+              if (placeholder) {
+                finalImages = [placeholder]; // Placeholder objesini array olarak ekle
+              }
+            }
+
+      // Etkinliği oluştur (Base64 fotoğraflarla veya placeholder ile birlikte)
       const docRef = await addDoc(collection(db, 'events'), {
         eventName: eventName,
         description: description,
@@ -227,29 +298,10 @@ export default function CreateEventScreen({ navigation }) {
         creatorName: user.displayName || 'Kullanıcı',
         createdAt: new Date().toISOString(),
         participants: [],
-        images: [], // Başlangıçta boş
+        images: finalImages, // Base64 fotoğrafları veya placeholder
       });
 
-      // Fotoğrafları yükle
-      if (eventImages.length > 0) {
-        const uploadedImageUrls = [];
-        for (const imageUri of eventImages) {
-          try {
-            const downloadURL = await uploadEventImage(docRef.id, imageUri);
-            uploadedImageUrls.push(downloadURL);
-          } catch (uploadError) {
-            console.error('Fotoğraf yükleme hatası:', uploadError);
-            // Devam et, bazı fotoğraflar yüklenemese bile
-          }
-        }
-
-        // Fotoğraf URL'lerini etkinliğe ekle
-        if (uploadedImageUrls.length > 0) {
-          await updateDoc(doc(db, 'events', docRef.id), {
-            images: uploadedImageUrls,
-          });
-        }
-      }
+      console.log('✅ Etkinlik oluşturuldu!', docRef.id);
 
       setLoading(false);
       setShowSuccessModal(true);
@@ -278,18 +330,18 @@ export default function CreateEventScreen({ navigation }) {
     <View style={styles.stepContainer}>
       <View style={styles.stepTitleContainer}>
         <Ionicons name="sparkles" size={24} color="#000000" />
-        <Text style={styles.stepTitle}>Yeni Sosyal Etkinlik</Text>
+        <Text style={styles.stepTitle}>{t(language, 'newSocialEvent')}</Text>
       </View>
-      <Text style={styles.stepSubtitle}>İnsanlarla tanış, eğlen, sosyalleş!</Text>
+      <Text style={styles.stepSubtitle}>{t(language, 'meetPeopleSubtitle')}</Text>
 
       <View style={styles.inputContainer}>
         <View style={styles.labelWithIcon}>
           <Ionicons name="text-outline" size={18} color="#000000" />
-          <Text style={styles.label}>Etkinlik Adı</Text>
+          <Text style={styles.label}>{t(language, 'eventName')}</Text>
         </View>
         <TextInput
           style={styles.input}
-          placeholder="Örn: Sahilde Kahve & Sohbet"
+          placeholder={t(language, 'eventNamePlaceholder')}
           placeholderTextColor="#666666"
           value={eventName}
           onChangeText={setEventName}
@@ -300,11 +352,11 @@ export default function CreateEventScreen({ navigation }) {
       <View style={styles.inputContainer}>
         <View style={styles.labelWithIcon}>
           <Ionicons name="document-text-outline" size={18} color="#000000" />
-          <Text style={styles.label}>Açıklama</Text>
+          <Text style={styles.label}>{t(language, 'description')}</Text>
         </View>
         <TextInput
           style={[styles.input, styles.textArea]}
-          placeholder="Ne yapacaksınız? Kimler katılmalı? Neden keyifli olacak?"
+          placeholder={t(language, 'descriptionPlaceholder')}
           placeholderTextColor="#666666"
           value={description}
           onChangeText={setDescription}
@@ -313,7 +365,7 @@ export default function CreateEventScreen({ navigation }) {
           textAlignVertical="top"
         />
         <Text style={styles.helperText}>
-          Samimi ve açıklayıcı bir metin insanların katılmasını kolaylaştırır
+          {t(language, 'descriptionHelper')}
         </Text>
       </View>
 
@@ -321,8 +373,8 @@ export default function CreateEventScreen({ navigation }) {
       <View style={styles.inputContainer}>
         <View style={styles.labelWithIcon}>
           <Ionicons name="images-outline" size={18} color="#000000" />
-          <Text style={styles.label}>Etkinlik Fotoğrafları</Text>
-          <Text style={styles.optionalBadge}>(Opsiyonel)</Text>
+          <Text style={styles.label}>{t(language, 'eventPhotos')}</Text>
+          <Text style={styles.optionalBadge}>({language === 'tr' ? 'Opsiyonel' : 'Optional'})</Text>
         </View>
         
         <ScrollView 
@@ -355,7 +407,7 @@ export default function CreateEventScreen({ navigation }) {
               ) : (
                 <>
                   <Ionicons name="camera-outline" size={32} color="#666666" />
-                  <Text style={styles.addPhotoText}>Fotoğraf Ekle</Text>
+                  <Text style={styles.addPhotoText}>{t(language, 'addPhoto')}</Text>
                   <Text style={styles.addPhotoCount}>
                     {eventImages.length}/3
                   </Text>
@@ -366,7 +418,7 @@ export default function CreateEventScreen({ navigation }) {
         </ScrollView>
         
         <Text style={styles.helperText}>
-          Fotoğraf eklemek etkinliğinin daha çok ilgi görmesini sağlar
+          {t(language, 'photoUploadOptional')}
         </Text>
       </View>
 
@@ -374,10 +426,9 @@ export default function CreateEventScreen({ navigation }) {
       <View style={styles.welcomeInfoBox}>
         <Ionicons name="hand-right-outline" size={24} color="#4CAF50" />
         <View style={styles.welcomeInfoTextContainer}>
-          <Text style={styles.welcomeInfoTitle}>Hoş Geldin!</Text>
+          <Text style={styles.welcomeInfoTitle}>{t(language, 'welcomeTitle')}</Text>
           <Text style={styles.welcomeInfoText}>
-            Yeni arkadaşlar edinmek için harika bir adım atıyorsun. 
-            Etkinliğini oluştururken samimi ve açık ol!
+            {t(language, 'welcomeMessage')}
           </Text>
         </View>
       </View>
@@ -427,12 +478,19 @@ export default function CreateEventScreen({ navigation }) {
     const thisSunday = new Date(thisSaturday);
     thisSunday.setDate(thisSaturday.getDate() + 1);
 
-    return [
-      { label: 'Bugün', date: today, icon: 'today-outline' },
-      { label: 'Yarın', date: tomorrow, icon: 'sunny-outline' },
-      { label: 'Cumartesi', date: thisSaturday, icon: 'calendar-outline' },
-      { label: 'Pazar', date: thisSunday, icon: 'calendar-outline' },
-    ];
+    return language === 'tr' 
+      ? [
+          { label: 'Bugün', date: today, icon: 'today-outline' },
+          { label: 'Yarın', date: tomorrow, icon: 'sunny-outline' },
+          { label: 'Cumartesi', date: thisSaturday, icon: 'calendar-outline' },
+          { label: 'Pazar', date: thisSunday, icon: 'calendar-outline' },
+        ]
+      : [
+          { label: 'Today', date: today, icon: 'today-outline' },
+          { label: 'Tomorrow', date: tomorrow, icon: 'sunny-outline' },
+          { label: 'Saturday', date: thisSaturday, icon: 'calendar-outline' },
+          { label: 'Sunday', date: thisSunday, icon: 'calendar-outline' },
+        ];
   };
 
   const getQuickTimes = () => {
@@ -482,16 +540,16 @@ export default function CreateEventScreen({ navigation }) {
     <View style={styles.stepContainer}>
       <View style={styles.stepTitleContainer}>
         <Ionicons name="calendar" size={24} color="#000000" />
-        <Text style={styles.stepTitle}>Ne Zaman?</Text>
+        <Text style={styles.stepTitle}>{t(language, 'whenTitle')}</Text>
       </View>
-      <Text style={styles.stepSubtitle}>Etkinliğin tarih ve saatini seç</Text>
+      <Text style={styles.stepSubtitle}>{t(language, 'whenSubtitle')}</Text>
 
       {/* Selected Date & Time Display */}
       <View style={styles.selectedDateTimeCard}>
         <View style={styles.selectedDateSection}>
           <Ionicons name="calendar" size={32} color="#000000" />
           <View style={styles.selectedDateInfo}>
-            <Text style={styles.selectedDateLabel}>Tarih</Text>
+            <Text style={styles.selectedDateLabel}>{language === 'tr' ? 'Tarih' : 'Date'}</Text>
             <Text style={styles.selectedDateValue}>
               {formatDate(eventDate)}
             </Text>
@@ -501,7 +559,7 @@ export default function CreateEventScreen({ navigation }) {
         <View style={styles.selectedTimeSection}>
           <Ionicons name="time" size={32} color="#000000" />
           <View style={styles.selectedTimeInfo}>
-            <Text style={styles.selectedTimeLabel}>Saat</Text>
+            <Text style={styles.selectedTimeLabel}>{language === 'tr' ? 'Saat' : 'Time'}</Text>
             <Text style={styles.selectedTimeValue}>
               {formatTime(eventTime)}
             </Text>
@@ -511,7 +569,7 @@ export default function CreateEventScreen({ navigation }) {
 
       {/* Quick Date Selection */}
       <View style={styles.quickSelectionSection}>
-        <Text style={styles.quickSelectionTitle}>Hızlı Tarih Seçimi</Text>
+        <Text style={styles.quickSelectionTitle}>{language === 'tr' ? 'Hızlı Tarih Seçimi' : 'Quick Date Selection'}</Text>
         <View style={styles.quickDateGrid}>
           {getQuickDates().map((item, index) => (
             <TouchableOpacity
@@ -550,7 +608,7 @@ export default function CreateEventScreen({ navigation }) {
           activeOpacity={0.7}
         >
           <Ionicons name="calendar-outline" size={18} color="#000000" />
-          <Text style={styles.customDateButtonText}>Özel Tarih Seç</Text>
+          <Text style={styles.customDateButtonText}>{language === 'tr' ? 'Özel Tarih Seç' : 'Custom Date'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -566,7 +624,7 @@ export default function CreateEventScreen({ navigation }) {
 
       {/* Quick Time Selection */}
       <View style={styles.quickSelectionSection}>
-        <Text style={styles.quickSelectionTitle}>Saat Seçimi</Text>
+        <Text style={styles.quickSelectionTitle}>{language === 'tr' ? 'Saat Seçimi' : 'Time Selection'}</Text>
         <View style={styles.quickTimeGrid}>
           {getQuickTimes().map((time, index) => (
             <TouchableOpacity
@@ -594,7 +652,7 @@ export default function CreateEventScreen({ navigation }) {
           activeOpacity={0.7}
         >
           <Ionicons name="time-outline" size={18} color="#000000" />
-          <Text style={styles.customDateButtonText}>Özel Saat Seç</Text>
+          <Text style={styles.customDateButtonText}>{t(language, 'customTime')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -608,17 +666,17 @@ export default function CreateEventScreen({ navigation }) {
           <View style={styles.timePickerModal}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowCustomTimePicker(false)}>
-                <Text style={styles.modalCancelText}>İptal</Text>
+                <Text style={styles.modalCancelText}>{t(language, 'cancel')}</Text>
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>Saat Seç</Text>
+              <Text style={styles.modalTitle}>{t(language, 'selectHour')}</Text>
               <TouchableOpacity onPress={handleCustomTimeSelect}>
-                <Text style={styles.modalDoneText}>Tamam</Text>
+                <Text style={styles.modalDoneText}>{t(language, 'ok')}</Text>
               </TouchableOpacity>
             </View>
             
             <View style={styles.pickersContainer}>
               <View style={styles.pickerColumn}>
-                <Text style={styles.pickerLabel}>Saat</Text>
+                <Text style={styles.pickerLabel}>{t(language, 'hour')}</Text>
                 <Picker
                   selectedValue={selectedHour}
                   onValueChange={(value) => setSelectedHour(value)}
@@ -638,7 +696,7 @@ export default function CreateEventScreen({ navigation }) {
               <Text style={styles.pickerSeparator}>:</Text>
               
               <View style={styles.pickerColumn}>
-                <Text style={styles.pickerLabel}>Dakika</Text>
+                <Text style={styles.pickerLabel}>{t(language, 'minute')}</Text>
                 <Picker
                   selectedValue={selectedMinute}
                   onValueChange={(value) => setSelectedMinute(value)}
@@ -663,39 +721,18 @@ export default function CreateEventScreen({ navigation }) {
       <View style={styles.dateTimeInfoBox}>
         <Ionicons name="bulb-outline" size={20} color="#FFA726" />
         <Text style={styles.dateTimeInfoText}>
-          İnsanların planlarını yapabilmesi için etkinliğini en az 24 saat önceden oluşturmanı öneriyoruz.
+          {language === 'tr' 
+            ? 'İnsanların planlarını yapabilmesi için etkinliğini en az 24 saat önceden oluşturmanı öneriyoruz.'
+            : 'We recommend creating your event at least 24 hours in advance so people can plan accordingly.'}
         </Text>
       </View>
     </View>
   );
 
-  const cities = ['İstanbul', 'Ankara', 'İzmir', 'Antalya', 'Bursa', 'Adana', 'Gaziantep', 'Konya', 'Mersin', 'Diyarbakır', 'Kayseri', 'Eskişehir', 'Samsun', 'Denizli', 'Trabzon', 'Kocaeli', 'Muğla', 'Balıkesir', 'Manisa', 'Aydın'];
-
-  const districtsByCity = {
-    'İstanbul': ['Kadıköy', 'Beşiktaş', 'Şişli', 'Beyoğlu', 'Üsküdar', 'Sarıyer', 'Bakırköy', 'Fatih', 'Kartal', 'Maltepe', 'Ataşehir', 'Pendik', 'Eyüpsultan', 'Sultanbeyli', 'Küçükçekmece'],
-    'Ankara': ['Çankaya', 'Keçiören', 'Yenimahalle', 'Mamak', 'Etimesgut', 'Sincan', 'Altındağ', 'Pursaklar', 'Gölbaşı', 'Polatlı'],
-    'İzmir': ['Konak', 'Karşıyaka', 'Bornova', 'Buca', 'Çiğli', 'Gaziemir', 'Balçova', 'Narlıdere', 'Bayraklı', 'Alsancak'],
-    'Antalya': ['Muratpaşa', 'Kepez', 'Konyaaltı', 'Alanya', 'Manavgat', 'Serik', 'Aksu', 'Döşemealtı'],
-    'Bursa': ['Osmangazi', 'Nilüfer', 'Yıldırım', 'Mudanya', 'Gemlik', 'İnegöl', 'Mustafakemalpaşa', 'Karacabey'],
-    'Adana': ['Seyhan', 'Yüreğir', 'Çukurova', 'Sarıçam', 'Karaisalı', 'Ceyhan', 'Kozan'],
-    'Gaziantep': ['Şahinbey', 'Şehitkamil', 'Oğuzeli', 'Nizip', 'İslahiye', 'Nurdağı'],
-    'Konya': ['Meram', 'Selçuklu', 'Karatay', 'Ereğli', 'Akşehir', 'Beyşehir', 'Seydişehir'],
-    'Mersin': ['Akdeniz', 'Mezitli', 'Toroslar', 'Yenişehir', 'Tarsus', 'Erdemli', 'Silifke'],
-    'Diyarbakır': ['Bağlar', 'Yenişehir', 'Kayapınar', 'Sur', 'Ergani', 'Bismil', 'Çınar'],
-    'Kayseri': ['Melikgazi', 'Kocasinan', 'Talas', 'İncesu', 'Develi', 'Yahyalı'],
-    'Eskişehir': ['Odunpazarı', 'Tepebaşı', 'Sivrihisar', 'Çifteler', 'Mahmudiye'],
-    'Samsun': ['İlkadım', 'Atakum', 'Canik', 'Tekkeköy', 'Terme', 'Bafra', 'Çarşamba'],
-    'Denizli': ['Merkezefendi', 'Pamukkale', 'Honaz', 'Çivril', 'Acıpayam', 'Tavas'],
-    'Trabzon': ['Ortahisar', 'Akçaabat', 'Yomra', 'Arsin', 'Vakfıkebir', 'Araklı', 'Beşikdüzü'],
-    'Kocaeli': ['İzmit', 'Gebze', 'Derince', 'Körfez', 'Darıca', 'Gölcük', 'Kandıra', 'Karamürsel'],
-    'Muğla': ['Menteşe', 'Bodrum', 'Marmaris', 'Fethiye', 'Milas', 'Datça', 'Köyceğiz', 'Ula'],
-    'Balıkesir': ['Altıeylül', 'Karesi', 'Bandırma', 'Edremit', 'Gönen', 'Ayvalık', 'Burhaniye'],
-    'Manisa': ['Şehzadeler', 'Yunusemre', 'Akhisar', 'Turgutlu', 'Salihli', 'Alaşehir', 'Soma'],
-    'Aydın': ['Efeler', 'Nazilli', 'Söke', 'Kuşadası', 'Didim', 'İncirliova', 'Germencik']
-  };
+  const cities = getCityNames();
 
   const getDistricts = () => {
-    return city ? (districtsByCity[city] || []) : [];
+    return city ? getDistrictsByCity(city) : [];
   };
 
   const handleCitySelect = (selectedCity) => {
@@ -707,15 +744,15 @@ export default function CreateEventScreen({ navigation }) {
     <View style={styles.stepContainer}>
       <View style={styles.stepTitleContainer}>
         <Ionicons name="location" size={24} color="#000000" />
-        <Text style={styles.stepTitle}>Nerede Buluşalım?</Text>
+        <Text style={styles.stepTitle}>{t(language, 'whereTitle')}</Text>
       </View>
-      <Text style={styles.stepSubtitle}>Buluşma noktanızı belirleyin</Text>
+      <Text style={styles.stepSubtitle}>{t(language, 'whereSubtitle')}</Text>
 
       {/* City Selection */}
       <View style={styles.inputContainer}>
         <View style={styles.labelWithIcon}>
           <Ionicons name="business" size={18} color="#000000" />
-          <Text style={styles.label}>İl</Text>
+          <Text style={styles.label}>{language === 'tr' ? 'İl' : 'City'}</Text>
         </View>
         <ScrollView 
           horizontal 
@@ -748,7 +785,7 @@ export default function CreateEventScreen({ navigation }) {
         <View style={styles.inputContainer}>
           <View style={styles.labelWithIcon}>
             <Ionicons name="location" size={18} color="#000000" />
-            <Text style={styles.label}>İlçe</Text>
+            <Text style={styles.label}>{language === 'tr' ? 'İlçe' : 'District'}</Text>
           </View>
           <ScrollView 
             horizontal 
@@ -780,11 +817,11 @@ export default function CreateEventScreen({ navigation }) {
       <View style={styles.inputContainer}>
         <View style={styles.labelWithIcon}>
           <Ionicons name="business-outline" size={18} color="#000000" />
-          <Text style={styles.label}>Mekan</Text>
+          <Text style={styles.label}>{language === 'tr' ? 'Mekan' : 'Venue'}</Text>
         </View>
         <TextInput
           style={styles.input}
-          placeholder="Örn: Starbucks Bağdat Caddesi"
+          placeholder={t(language, 'locationPlaceholder')}
           placeholderTextColor="#666666"
           value={location}
           onChangeText={setLocation}
@@ -795,11 +832,11 @@ export default function CreateEventScreen({ navigation }) {
       <View style={styles.inputContainer}>
         <View style={styles.labelWithIcon}>
           <Ionicons name="map-outline" size={18} color="#000000" />
-          <Text style={styles.label}>Adres Detayı</Text>
+          <Text style={styles.label}>{language === 'tr' ? 'Adres Detayı' : 'Address Details'}</Text>
         </View>
         <TextInput
           style={[styles.input, styles.textArea]}
-          placeholder="Tam adres veya detaylı tarif (hangi durak, landmark vb.)"
+          placeholder={t(language, 'addressPlaceholder')}
           placeholderTextColor="#666666"
           value={address}
           onChangeText={setAddress}
@@ -808,7 +845,7 @@ export default function CreateEventScreen({ navigation }) {
           textAlignVertical="top"
         />
         <Text style={styles.helperText}>
-          Kolay ulaşılabilir, güvenli ve sosyalleşmeye uygun bir yer seçin
+          {t(language, 'locationTip')}
         </Text>
       </View>
 
@@ -816,11 +853,17 @@ export default function CreateEventScreen({ navigation }) {
       <View style={styles.locationTipsBox}>
         <View style={styles.locationTipsHeader}>
           <Ionicons name="compass-outline" size={20} color="#2196F3" />
-          <Text style={styles.locationTipsTitle}>Konum İpuçları</Text>
+          <Text style={styles.locationTipsTitle}>{language === 'tr' ? 'Konum İpuçları' : 'Location Tips'}</Text>
         </View>
-        <Text style={styles.locationTip}>• Popüler kafeler ideal başlangıç noktaları</Text>
-        <Text style={styles.locationTip}>• Parklar açık hava aktiviteleri için harika</Text>
-        <Text style={styles.locationTip}>• Herkesin kolayca bulabileceği yerler tercih edin</Text>
+        <Text style={styles.locationTip}>
+          {language === 'tr' ? '• Popüler kafeler ideal başlangıç noktaları' : '• Popular cafes are ideal starting points'}
+        </Text>
+        <Text style={styles.locationTip}>
+          {language === 'tr' ? '• Parklar açık hava aktiviteleri için harika' : '• Parks are great for outdoor activities'}
+        </Text>
+        <Text style={styles.locationTip}>
+          {language === 'tr' ? '• Herkesin kolayca bulabileceği yerler tercih edin' : '• Prefer places that everyone can easily find'}
+        </Text>
       </View>
     </View>
   );
@@ -829,33 +872,34 @@ export default function CreateEventScreen({ navigation }) {
     <View style={styles.stepContainer}>
       <View style={styles.stepTitleContainer}>
         <Ionicons name="options" size={24} color="#000000" />
-        <Text style={styles.stepTitle}>Detaylar</Text>
+        <Text style={styles.stepTitle}>{t(language, 'detailsTitle')}</Text>
       </View>
-      <Text style={styles.stepSubtitle}>Etkinliğini kişiselleştir</Text>
+      <Text style={styles.stepSubtitle}>{t(language, 'detailsSubtitle')}</Text>
 
       {/* Category */}
       <View style={styles.inputContainer}>
         <View style={styles.labelWithIcon}>
           <Ionicons name="pricetag-outline" size={18} color="#000000" />
-          <Text style={styles.label}>Kategori</Text>
+          <Text style={styles.label}>{language === 'tr' ? 'Kategori' : 'Category'}</Text>
         </View>
         <View style={styles.categoryContainer}>
-          {['Kahve & Sohbet', 'Yemek', 'Spor', 'Gezi', 'Sanat & Kültür', 'Oyun', 'Parti'].map((cat) => (
+          {CATEGORIES.map((cat) => (
             <TouchableOpacity
-              key={cat}
+              key={cat.name}
               style={[
                 styles.categoryChip,
-                category === cat && styles.categoryChipActive,
+                category === cat.name && styles.categoryChipActive,
               ]}
-              onPress={() => setCategory(cat)}
+              onPress={() => setCategory(cat.name)}
             >
+              <Text style={styles.categoryEmoji}>{cat.icon}</Text>
               <Text
                 style={[
                   styles.categoryChipText,
-                  category === cat && styles.categoryChipTextActive,
+                  category === cat.name && styles.categoryChipTextActive,
                 ]}
               >
-                {cat}
+                {cat.name}
               </Text>
             </TouchableOpacity>
           ))}
@@ -866,10 +910,13 @@ export default function CreateEventScreen({ navigation }) {
       <View style={styles.inputContainer}>
         <View style={styles.labelWithIcon}>
           <Ionicons name="people-outline" size={18} color="#000000" />
-          <Text style={styles.label}>Kimler Katılabilir?</Text>
+          <Text style={styles.label}>{language === 'tr' ? 'Kimler Katılabilir?' : 'Who Can Join?'}</Text>
         </View>
         <View style={styles.filterContainer}>
-          {['Herkes', 'Sadece Kadınlar', 'Sadece Erkekler'].map((filter) => (
+          {(language === 'tr' 
+            ? ['Herkes', 'Sadece Kadınlar', 'Sadece Erkekler']
+            : ['Everyone', 'Women Only', 'Men Only']
+          ).map((filter) => (
             <TouchableOpacity
               key={filter}
               style={[
@@ -879,9 +926,9 @@ export default function CreateEventScreen({ navigation }) {
               onPress={() => setParticipantFilter(filter)}
             >
               <View style={styles.filterButtonContent}>
-                {filter === 'Herkes' && <Ionicons name="globe-outline" size={16} color={participantFilter === filter ? '#FFFFFF' : '#666666'} />}
-                {filter === 'Sadece Kadınlar' && <Ionicons name="woman-outline" size={16} color={participantFilter === filter ? '#FFFFFF' : '#666666'} />}
-                {filter === 'Sadece Erkekler' && <Ionicons name="man-outline" size={16} color={participantFilter === filter ? '#FFFFFF' : '#666666'} />}
+                {(filter === 'Herkes' || filter === 'Everyone') && <Ionicons name="globe-outline" size={16} color={participantFilter === filter ? '#FFFFFF' : '#666666'} />}
+                {(filter === 'Sadece Kadınlar' || filter === 'Women Only') && <Ionicons name="woman-outline" size={16} color={participantFilter === filter ? '#FFFFFF' : '#666666'} />}
+                {(filter === 'Sadece Erkekler' || filter === 'Men Only') && <Ionicons name="man-outline" size={16} color={participantFilter === filter ? '#FFFFFF' : '#666666'} />}
                 <Text
                   style={[
                     styles.filterChipText,
@@ -900,10 +947,13 @@ export default function CreateEventScreen({ navigation }) {
       <View style={styles.inputContainer}>
         <View style={styles.labelWithIcon}>
           <Ionicons name="calendar-number-outline" size={18} color="#000000" />
-          <Text style={styles.label}>Yaş Aralığı</Text>
+          <Text style={styles.label}>{language === 'tr' ? 'Yaş Aralığı' : 'Age Range'}</Text>
         </View>
         <View style={styles.filterContainer}>
-          {['Tüm Yaşlar', '18-25', '26-35', '36-45', '46+'].map((age) => (
+          {(language === 'tr' 
+            ? ['Tüm Yaşlar', '18-25', '26-35', '36-45', '46+']
+            : ['All Ages', '18-25', '26-35', '36-45', '46+']
+          ).map((age) => (
             <TouchableOpacity
               key={age}
               style={[
@@ -929,18 +979,20 @@ export default function CreateEventScreen({ navigation }) {
       <View style={styles.inputContainer}>
         <View style={styles.labelWithIcon}>
           <Ionicons name="person-add-outline" size={18} color="#000000" />
-          <Text style={styles.label}>Maksimum Katılımcı</Text>
+          <Text style={styles.label}>{language === 'tr' ? 'Maksimum Katılımcı' : 'Maximum Participants'}</Text>
         </View>
         <TextInput
           style={styles.input}
-          placeholder="Örn: 10 kişi"
+          placeholder={t(language, 'maxParticipantsPlaceholder')}
           placeholderTextColor="#666666"
           value={capacity}
           onChangeText={setCapacity}
           keyboardType="numeric"
         />
         <Text style={styles.helperText}>
-          Küçük gruplar daha samimi sosyalleşme sağlar (5-15 kişi önerilir)
+          {language === 'tr' 
+            ? 'Küçük gruplar daha samimi sosyalleşme sağlar (5-15 kişi önerilir)'
+            : 'Small groups provide more intimate socialization (5-15 people recommended)'}
         </Text>
       </View>
 
@@ -948,9 +1000,11 @@ export default function CreateEventScreen({ navigation }) {
       <View style={styles.socialInfoBox}>
         <Ionicons name="bulb-outline" size={24} color="#FFA726" />
         <View style={styles.socialInfoTextContainer}>
-          <Text style={styles.socialInfoTitle}>Sosyalleşme İpucu</Text>
+          <Text style={styles.socialInfoTitle}>{language === 'tr' ? 'Sosyalleşme İpucu' : 'Socialization Tip'}</Text>
           <Text style={styles.socialInfoText}>
-            Filtreleri kullanarak benzer ilgi alanlarına sahip kişilerle bir araya gelebilirsin!
+            {language === 'tr' 
+              ? 'Filtreleri kullanarak benzer ilgi alanlarına sahip kişilerle bir araya gelebilirsin!'
+              : 'You can come together with people who have similar interests by using filters!'}
           </Text>
         </View>
       </View>
@@ -987,7 +1041,7 @@ export default function CreateEventScreen({ navigation }) {
         >
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Yeni Etkinlik</Text>
+        <Text style={styles.headerTitle}>{t(language, 'createEvent')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -1008,7 +1062,7 @@ export default function CreateEventScreen({ navigation }) {
             disabled={loading}
           >
             <Text style={styles.nextButtonText}>
-              {currentStep === totalSteps - 1 ? 'Oluştur' : 'İleri'}
+              {currentStep === totalSteps - 1 ? t(language, 'create') : t(language, 'next')}
             </Text>
             <Text style={styles.nextButtonArrow}>→</Text>
           </TouchableOpacity>
@@ -1019,24 +1073,41 @@ export default function CreateEventScreen({ navigation }) {
       <Modal
         visible={showSuccessModal}
         transparent={true}
-        animationType="fade"
+        animationType="slide"
       >
         <View style={styles.successModalOverlay}>
           <View style={styles.successModalContent}>
+            {/* Success Icon with Animation */}
             <View style={styles.successIconContainer}>
               <View style={styles.successIconCircle}>
-                <Ionicons name="checkmark" size={60} color="#FFFFFF" />
+                <View style={styles.successIconInnerCircle}>
+                  <Ionicons name="checkmark-circle" size={90} color="#4CAF50" />
+                </View>
+                <View style={styles.successPulse} />
+                <View style={[styles.successPulse, { animationDelay: '0.3s' }]} />
               </View>
             </View>
             
-            <Text style={styles.successTitle}>Harika! 🎉</Text>
-            <Text style={styles.successMessage}>
-              Etkinliğin başarıyla oluşturuldu
-            </Text>
-            <Text style={styles.successSubtext}>
-              İnsanlar etkinliğini görebilir ve katılım isteği gönderebilir
-            </Text>
+            {/* Success Content */}
+            <View style={styles.successContent}>
+              <Text style={styles.successTitle}>{t(language, 'eventCreatedSuccess')}</Text>
+              <Text style={styles.successMessage}>
+                {t(language, 'eventCreatedMessage')}
+              </Text>
+              
+              {/* Decorative Divider */}
+              <View style={styles.successDividerContainer}>
+                <View style={styles.successDividerLine} />
+                <Ionicons name="sparkles" size={20} color="#FFD700" />
+                <View style={styles.successDividerLine} />
+              </View>
+              
+              <Text style={styles.successSubtext}>
+                {t(language, 'eventCreatedSubtext')}
+              </Text>
+            </View>
 
+            {/* Action Button */}
             <TouchableOpacity
               style={styles.successButton}
               onPress={() => {
@@ -1045,8 +1116,11 @@ export default function CreateEventScreen({ navigation }) {
               }}
               activeOpacity={0.8}
             >
-              <Text style={styles.successButtonText}>Etkinlikleri Gör</Text>
-              <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+              <View style={styles.successButtonContent}>
+                <Ionicons name="calendar" size={22} color="#FFFFFF" />
+                <Text style={styles.successButtonText}>{t(language, 'viewEvents')}</Text>
+                <Ionicons name="arrow-forward" size={22} color="#FFFFFF" />
+              </View>
             </TouchableOpacity>
           </View>
         </View>
@@ -1201,10 +1275,16 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   categoryChipActive: {
     backgroundColor: '#000000',
     borderColor: '#000000',
+  },
+  categoryEmoji: {
+    fontSize: 16,
   },
   categoryChipText: {
     fontSize: 13,
@@ -1682,62 +1762,103 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   successIconContainer: {
-    marginBottom: 24,
+    marginBottom: 32,
+    alignItems: 'center',
   },
   successIconCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#4CAF50',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: '#F0FDF4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  successIconInnerCircle: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#4CAF50',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 10,
+    zIndex: 2,
+  },
+  successPulse: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: '#4CAF50',
+    opacity: 0.15,
+    zIndex: 1,
+  },
+  successContent: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  successDividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginVertical: 24,
+    gap: 12,
+  },
+  successDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E8E8E8',
   },
   successTitle: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 32,
+    fontWeight: '800',
     color: '#000000',
-    marginBottom: 12,
+    marginBottom: 16,
     textAlign: 'center',
+    letterSpacing: -0.5,
   },
   successMessage: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333333',
-    marginBottom: 8,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 12,
     textAlign: 'center',
+    lineHeight: 28,
   },
   successSubtext: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#666666',
-    marginBottom: 32,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 22,
+    paddingHorizontal: 8,
   },
   successButton: {
-    flexDirection: 'row',
+    width: '100%',
     backgroundColor: '#000000',
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
+    borderRadius: 18,
+    paddingVertical: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  successButtonContent: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    gap: 12,
   },
   successButtonText: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
     color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
 });
 

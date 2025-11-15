@@ -25,8 +25,11 @@ import {
   increment,
 } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
+import { useLanguage } from '../context/LanguageContext';
+import { t } from '../locales/translations';
 
 export default function RateEventScreen({ route, navigation }) {
+  const { language } = useLanguage();
   const { eventId, organizerId } = route.params;
   const [event, setEvent] = useState(null);
   const [organizer, setOrganizer] = useState(null);
@@ -63,12 +66,12 @@ export default function RateEventScreen({ route, navigation }) {
 
   const handleSubmit = async () => {
     if (rating === 0) {
-      Alert.alert('Uyarı', 'Lütfen bir değerlendirme puanı verin');
+      Alert.alert(t(language, 'warning'), t(language, 'ratingWarning'));
       return;
     }
 
     if (!comment.trim()) {
-      Alert.alert('Uyarı', 'Lütfen bir yorum yazın');
+      Alert.alert(t(language, 'warning'), t(language, 'commentWarning'));
       return;
     }
 
@@ -84,7 +87,7 @@ export default function RateEventScreen({ route, navigation }) {
       const existingReviews = await getDocs(q);
 
       if (!existingReviews.empty) {
-        Alert.alert('Uyarı', 'Bu etkinliği zaten değerlendirdiniz');
+        Alert.alert(t(language, 'warning'), t(language, 'alreadyRated'));
         setSubmitting(false);
         return;
       }
@@ -106,11 +109,11 @@ export default function RateEventScreen({ route, navigation }) {
 
       setSubmitting(false);
       Alert.alert(
-        'Teşekkürler! 🎉',
-        'Değerlendirmeniz kaydedildi.',
+        t(language, 'ratingSuccess'),
+        t(language, 'ratingSuccessMessage'),
         [
           {
-            text: 'Tamam',
+            text: t(language, 'ok'),
             onPress: () => navigation.goBack(),
           }
         ]
@@ -118,7 +121,7 @@ export default function RateEventScreen({ route, navigation }) {
     } catch (error) {
       console.error('Değerlendirme kaydetme hatası:', error);
       setSubmitting(false);
-      Alert.alert('Hata', 'Değerlendirme kaydedilirken bir hata oluştu');
+      Alert.alert(t(language, 'error'), t(language, 'ratingError'));
     }
   };
 
@@ -181,20 +184,20 @@ export default function RateEventScreen({ route, navigation }) {
 
   const getRatingText = () => {
     const ratings = {
-      1: 'Çok Kötü 😞',
-      2: 'Kötü 😕',
-      3: 'Orta 😐',
-      4: 'İyi 😊',
-      5: 'Mükemmel 🤩',
+      1: t(language, 'veryBad'),
+      2: t(language, 'bad'),
+      3: t(language, 'average'),
+      4: t(language, 'good'),
+      5: t(language, 'excellent'),
     };
-    return rating > 0 ? ratings[rating] : 'Bir puan seçin';
+    return rating > 0 ? ratings[rating] : t(language, 'selectRating');
   };
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#000000" />
-        <Text style={styles.loadingText}>Yükleniyor...</Text>
+        <Text style={styles.loadingText}>{t(language, 'loading')}</Text>
       </View>
     );
   }
@@ -216,7 +219,7 @@ export default function RateEventScreen({ route, navigation }) {
         >
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Etkinliği Değerlendir</Text>
+        <Text style={styles.headerTitle}>{t(language, 'rateEventHeader')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -240,13 +243,13 @@ export default function RateEventScreen({ route, navigation }) {
             </Text>
           </View>
           <View style={styles.organizerInfo}>
-            <Text style={styles.organizerLabel}>Organizatör</Text>
+            <Text style={styles.organizerLabel}>{t(language, 'organizer')}</Text>
             <Text style={styles.organizerName}>{organizer?.name}</Text>
             {organizer?.averageRating && (
               <View style={styles.organizerRating}>
                 <Ionicons name="star" size={14} color="#FFD700" />
                 <Text style={styles.organizerRatingText}>
-                  {organizer.averageRating} ({organizer.reviewCount} değerlendirme)
+                  {organizer.averageRating} ({organizer.reviewCount} {t(language, 'reviews')})
                 </Text>
               </View>
             )}
@@ -255,9 +258,9 @@ export default function RateEventScreen({ route, navigation }) {
 
         {/* Rating Section */}
         <View style={styles.ratingSection}>
-          <Text style={styles.sectionTitle}>Organizatörü Değerlendir</Text>
+          <Text style={styles.sectionTitle}>{t(language, 'rateOrganizer')}</Text>
           <Text style={styles.sectionSubtitle}>
-            Etkinlik deneyiminiz nasıldı?
+            {t(language, 'rateExperience')}
           </Text>
 
           {renderStars()}
@@ -267,14 +270,14 @@ export default function RateEventScreen({ route, navigation }) {
 
         {/* Comment Section */}
         <View style={styles.commentSection}>
-          <Text style={styles.sectionTitle}>Yorumunuz</Text>
+          <Text style={styles.sectionTitle}>{t(language, 'yourComment')}</Text>
           <Text style={styles.sectionSubtitle}>
-            Deneyiminizi diğer kullanıcılarla paylaşın
+            {t(language, 'shareExperienceWithOthers')}
           </Text>
 
           <TextInput
             style={styles.commentInput}
-            placeholder="Etkinlik hakkında düşüncelerinizi yazın..."
+            placeholder={t(language, 'commentPlaceholder')}
             placeholderTextColor="#999999"
             value={comment}
             onChangeText={setComment}
@@ -301,7 +304,7 @@ export default function RateEventScreen({ route, navigation }) {
           {submitting ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
-            <Text style={styles.submitButtonText}>Değerlendirmeyi Gönder</Text>
+            <Text style={styles.submitButtonText}>{t(language, 'submitRating')}</Text>
           )}
         </TouchableOpacity>
 
@@ -309,8 +312,7 @@ export default function RateEventScreen({ route, navigation }) {
         <View style={styles.infoBox}>
           <Text style={styles.infoIcon}>ℹ️</Text>
           <Text style={styles.infoText}>
-            Değerlendirmeleriniz organizatörlerin kalitesini artırmamıza ve diğer kullanıcıların 
-            daha iyi kararlar almasına yardımcı olur.
+            {t(language, 'ratingInfo')}
           </Text>
         </View>
       </ScrollView>

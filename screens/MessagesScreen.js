@@ -20,8 +20,11 @@ import {
   limit,
 } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
+import { useLanguage } from '../context/LanguageContext';
+import { t } from '../locales/translations';
 
 export default function MessagesScreen({ navigation }) {
+  const { language } = useLanguage();
   const [eventChats, setEventChats] = useState([]);
   const [loading, setLoading] = useState(true);
   const user = auth.currentUser;
@@ -191,7 +194,7 @@ export default function MessagesScreen({ navigation }) {
             </Text>
           ) : (
             <Text style={styles.noMessageText}>
-              Henüz mesaj yok
+              {language === 'tr' ? 'Henüz mesaj yok' : 'No messages yet'}
             </Text>
           )}
         </View>
@@ -200,7 +203,7 @@ export default function MessagesScreen({ navigation }) {
           <View style={styles.participantCount}>
             <Ionicons name="people-outline" size={14} color="#999999" />
             <Text style={styles.participantCountText}>
-              {item.participantsCount} kişi
+              {item.participantsCount} {language === 'tr' ? 'kişi' : (item.participantsCount === 1 ? 'person' : 'people')}
             </Text>
           </View>
         </View>
@@ -215,16 +218,18 @@ export default function MessagesScreen({ navigation }) {
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <Ionicons name="chatbubbles-outline" size={64} color="#E0E0E0" />
-      <Text style={styles.emptyTitle}>Henüz mesajınız yok</Text>
+      <Text style={styles.emptyTitle}>{t(language, 'noConversations')}</Text>
       <Text style={styles.emptyText}>
-        Bir etkinliğe katıldığınızda grup sohbetleri burada görünecek
+        {language === 'tr' 
+          ? 'Bir etkinliğe katıldığınızda grup sohbetleri burada görünecek'
+          : 'Group chats will appear here when you join an event'}
       </Text>
       <TouchableOpacity
         style={styles.exploreButton}
         onPress={() => navigation.navigate('HomePage')}
         activeOpacity={0.7}
       >
-        <Text style={styles.exploreButtonText}>Etkinlikleri Keşfet</Text>
+        <Text style={styles.exploreButtonText}>{t(language, 'discoverEvents')}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -244,9 +249,9 @@ export default function MessagesScreen({ navigation }) {
       
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Mesajlar</Text>
+        <Text style={styles.headerTitle}>{t(language, 'messages')}</Text>
         <Text style={styles.headerSubtitle}>
-          {eventChats.length} sohbet
+          {eventChats.length} {language === 'tr' ? 'sohbet' : 'chat'}{eventChats.length !== 1 ? (language === 'tr' ? 'ler' : 's') : ''}
         </Text>
       </View>
 
