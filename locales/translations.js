@@ -327,6 +327,7 @@ export const translations = {
     noMessagesYet: 'Henüz mesaj yok',
     writeFirstMessage: 'Grup sohbetine ilk mesajı sen yaz!',
     loadingChat: 'Sohbet yükleniyor...',
+    loadingMessages: 'Mesajlar yükleniyor...',
     errorLoadingMessages: 'Mesajlar yüklenirken bir hata oluştu',
     errorSendingMessage: 'Mesaj gönderilemedi',
     
@@ -999,6 +1000,7 @@ export const translations = {
     noMessagesYet: 'No messages yet',
     writeFirstMessage: 'Be the first to write a message in the group chat!',
     loadingChat: 'Loading chat...',
+    loadingMessages: 'Loading messages...',
     errorLoadingMessages: 'An error occurred while loading messages',
     errorSendingMessage: 'Failed to send message',
     

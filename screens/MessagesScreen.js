@@ -106,22 +106,26 @@ export default function MessagesScreen({ navigation }) {
     const messageDate = timestamp.toDate();
     const now = new Date();
     const diffInHours = (now - messageDate) / (1000 * 60 * 60);
+    const locale = language === 'tr' ? 'tr-TR' : 'en-US';
 
     if (diffInHours < 1) {
       const minutes = Math.floor((now - messageDate) / (1000 * 60));
-      return minutes < 1 ? 'Şimdi' : `${minutes} dk`;
+      if (minutes < 1) {
+        return language === 'tr' ? 'Şimdi' : 'Now';
+      }
+      return language === 'tr' ? `${minutes} dk` : `${minutes}m`;
     } else if (diffInHours < 24) {
-      return messageDate.toLocaleTimeString('tr-TR', { 
+      return messageDate.toLocaleTimeString(locale, { 
         hour: '2-digit', 
         minute: '2-digit' 
       });
     } else if (diffInHours < 48) {
-      return 'Dün';
+      return language === 'tr' ? 'Dün' : 'Yesterday';
     } else if (diffInHours < 168) { // 7 gün
       const days = Math.floor(diffInHours / 24);
-      return `${days} gün önce`;
+      return language === 'tr' ? `${days} gün önce` : `${days}d ago`;
     } else {
-      return messageDate.toLocaleDateString('tr-TR', { 
+      return messageDate.toLocaleDateString(locale, { 
         day: 'numeric', 
         month: 'short' 
       });
@@ -189,12 +193,12 @@ export default function MessagesScreen({ navigation }) {
         <View style={styles.messagePreview}>
           {item.lastMessage ? (
             <Text style={styles.lastMessageText} numberOfLines={1}>
-              {item.lastMessage.isFromCurrentUser && 'Sen: '}
+              {item.lastMessage.isFromCurrentUser && `${t(language, 'you')}: `}
               {item.lastMessage.text}
             </Text>
           ) : (
             <Text style={styles.noMessageText}>
-              {language === 'tr' ? 'Henüz mesaj yok' : 'No messages yet'}
+              {t(language, 'noMessagesYet')}
             </Text>
           )}
         </View>
@@ -238,7 +242,7 @@ export default function MessagesScreen({ navigation }) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#000000" />
-        <Text style={styles.loadingText}>Mesajlar yükleniyor...</Text>
+        <Text style={styles.loadingText}>{t(language, 'loadingMessages')}</Text>
       </View>
     );
   }
